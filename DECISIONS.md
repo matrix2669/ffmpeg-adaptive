@@ -52,11 +52,11 @@ opinion.
 
 ---
 
-# ADR-002: Keep the compatibility command while renaming the project
+# ADR-002: Confirm the bootstrap identity and compatibility command
 
 ## Status
 
-Provisional
+Accepted
 
 ## Date
 
@@ -67,6 +67,9 @@ Provisional
 Name the standalone project `ffmpeg-adaptive` while retaining
 `ffmpeg-smart.sh` as the executable compatibility command. Existing
 `FFMPEG_SMART_*` managed-integration variables remain stable in version 0.1.0.
+
+Publish the repository publicly as `matrix2669/ffmpeg-adaptive`, use initial
+version `0.1.0`, and identify `Jarred Saperton` as the 2026 copyright holder.
 
 ## Reason
 
@@ -87,11 +90,11 @@ User-facing branding and the executable name differ. Revisit when downstream
 integrations can migrate atomically; if renamed later, keep a thin compatibility
 entry point for at least one major version.
 
-## Review trigger
+## Confirmation
 
-Explicit owner confirmation of the public repository, copyright holder,
-initial version, and compatibility-command assumptions before or immediately
-after the bootstrap checkpoint.
+The owner explicitly confirmed the public repository, copyright holder,
+initial version, and compatibility-command assumptions on 2026-08-29 after the
+bootstrap checkpoint.
 
 ---
 
