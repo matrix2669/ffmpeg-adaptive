@@ -1,0 +1,468 @@
+# Decisions
+
+---
+
+# ADR-001: Publish as a clean standalone MIT project
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Create `matrix2669/ffmpeg-adaptive` as a standalone repository with a new Git
+history and an MIT license. Import only the independently structured rewrite,
+new behavioral tests, matrix2669-owned validation evidence, and newly authored
+standalone documentation. Do not import inherited Git objects or inherited
+README/governance text from `FiveBoroughs/ffmpeg-asr`.
+
+## Reason
+
+The previous fork's upstream source has no identified license, and an open MIT
+pull request is not permission. The completed replacement runtime has no
+non-trivial exact source overlap, but a clean repository removes ambiguous
+history and lets the owner license only the independently authored tree.
+
+## Alternatives considered
+
+- Add MIT to the existing fork: rejected because its history and documentation
+  contain unlicensed upstream expression.
+- Wait indefinitely for the upstream license request: rejected because the
+  independent rewrite and provenance evidence provide a controllable path.
+- Remove attribution/history evidence: rejected because transparent provenance
+  is part of the acceptance gate.
+
+## Consequences
+
+The new project owns its branch and release lifecycle. The old fork remains a
+comparison and provenance record and is not merged into this history. A source
+overlap and ownership review remains a release gate; this ADR is not a legal
+opinion.
+
+## Provenance
+
+- Rewrite source checkpoint: `matrix2669/ffmpeg-asr` commit `fe4fe93a4e1e5f81fb126a40739e123e4279f1dd`
+- Independent runtime commit: `300a4707903c15f53c05b8ec8a379cf8fa22c2b5`
+- Workspace sidecar: `matrix2669/workspace` commit `4102563425631edef07899ed1cc8fc95423e05f6`
+- Source conversation: `Copyright and Code Overlap Review`
+
+---
+
+# ADR-002: Keep the compatibility command while renaming the project
+
+## Status
+
+Provisional
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Name the standalone project `ffmpeg-adaptive` while retaining
+`ffmpeg-smart.sh` as the executable compatibility command. Existing
+`FFMPEG_SMART_*` managed-integration variables remain stable in version 0.1.0.
+
+## Reason
+
+Dispatcharr profiles and the related plugin already call that filename and use
+those variables. Renaming the repository does not require an immediate breaking
+integration migration.
+
+## Alternatives considered
+
+- Rename the executable and every variable immediately: deferred because it
+  would add unrelated integration risk to the licensing/history move.
+- Provide two full implementations: rejected because it would create duplicate
+  sources of truth.
+
+## Consequences
+
+User-facing branding and the executable name differ. Revisit when downstream
+integrations can migrate atomically; if renamed later, keep a thin compatibility
+entry point for at least one major version.
+
+## Review trigger
+
+Explicit owner confirmation of the public repository, copyright holder,
+initial version, and compatibility-command assumptions before or immediately
+after the bootstrap checkpoint.
+
+---
+
+# ADR-003: Make HDR and 10-bit automatic and keep one spelling per policy
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+HDR and 10-bit output selection are automatic capability decisions. Compatible
+HDR/10-bit input is preserved when the selected path supports it. `-sdr`
+explicitly requests an SDR transcode. Remove `-hdr` and `-10bit` because they
+duplicate automatic behavior. Support only `-deint` and `-maxbr`; reject the
+`-deinterlace` and `-maxbitrate` aliases.
+
+## Reason
+
+One unambiguous control per policy reduces configuration combinations without
+removing useful behavior. Automatic selection already expresses the normal HDR
+and 10-bit case, and `-sdr` is the meaningful override.
+
+## Alternatives considered
+
+- Retain all historical spellings: rejected as unnecessary interface surface.
+- Add negative HDR/10-bit controls: rejected because `-sdr` owns the required
+  conversion policy.
+
+## Consequences
+
+The removed options fail with configuration status 64. Existing callers using
+them must remove `-hdr`/`-10bit` and replace `-deinterlace`/`-maxbitrate` with
+`-deint`/`-maxbr`.
+
+---
+
+# ADR-004: Preserve a modular data-safe runtime
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Keep a thin entry point and separate CLI, cache, hardware, probe, policy, and
+common modules. Build FFmpeg commands with arrays and phase ownership, never
+`eval`. Store capabilities in a validated, versioned, tab-delimited data format
+that is parsed rather than sourced.
+
+## Reason
+
+This separates security-sensitive boundaries, supports Bash 3, makes behavior
+testable without inherited helper structure, and prevents a writable cache from
+becoming executable shell input.
+
+## Consequences
+
+Old shell-assignment caches are invalid and require `--recache-only`. The
+wrapper owns input structure, hardware initialization, video encoding and
+filters, and the MPEG-TS stdout destination.
+
+---
+
+# ADR-005: Use metadata-validated adaptive probing
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Probe with a fast 1-second/1-MB tier. Accept it only when the selected video and
+audio metadata is complete. Retry incomplete metadata at 2 seconds/2 MB, then
+use native FFprobe defaults if needed. Keep transport failures terminal instead
+of expanding them. Use the winning limits for final FFmpeg startup, redact
+source locations, and replay captured `pipe:0` bytes exactly.
+
+## Reason
+
+Fast probing materially reduces startup time for healthy live sources, while
+metadata validation avoids accepting incomplete audio/program information.
+Transport retry is a different concern and can amplify provider load or expose
+credentials.
+
+## Consequences
+
+Probe outcomes are observable in diagnostics without revealing the source URL.
+Finite stdin and live URLs have regression coverage.
+
+---
+
+# ADR-006: Schedule by verified concurrent capacity and weighted visible load
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Discover physical hardware independent of render-node numbering, test each
+candidate/device combination, and define usable capacity with simultaneous real
+transcodes that each maintain at least 1.2x speed. Use short boundary tests and
+longer confirmation. Select the visible GPU with the lowest weighted
+active-load/capacity ratio, breaking ties toward the primary. Weight a job by
+the greater input/output pixel rate relative to 1080p30.
+
+## Reason
+
+Single-stream speed does not predict the useful difference between an Intel
+integrated GPU and Arc A310 under concurrent IPTV load. Pixel-rate weighting
+accounts for 720p, 1080p60, and scaling workloads without a required daemon.
+
+## Consequences
+
+Results are hardware- and environment-specific. Explicit device overrides
+bypass selection. Only processes visible in the current PID namespace can be
+counted; unknown work is conservative. Re-measure after relevant hardware,
+driver, FFmpeg, container, or host changes.
+
+---
+
+# ADR-007: Normalize only when an active policy requires it
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Resolve output policy before building FFmpeg arguments and stream-copy video
+whenever the input already satisfies every active requirement. Re-encode once
+when any codec, resolution, bitrate, SDR, or deinterlace requirement differs,
+and state each reason in credential-safe diagnostics.
+
+Constraints are independent and optional:
+
+- `-maxres` is a maximum height; never upscale.
+- `-maxbr` is a guaranteed video ceiling. Unknown bitrate must transcode;
+  constrained VBR targets the lower of the normal rate or 85% of the ceiling,
+  with a buffer twice the ceiling.
+- `-maxchan` is an audio maximum and never causes upmixing.
+- `-sdr` tone-maps HDR input to BT.709 SDR.
+- `-deint` affects only input identified as interlaced.
+
+Automatic HDR/10-bit behavior follows ADR-003. Consumer profiles, not the
+wrapper, own bundled defaults such as the 720p mobile policy.
+
+## Reason
+
+The project is a compatibility normalizer, not an always-transcode pipeline.
+This minimizes generation loss, latency, startup work, and GPU consumption
+while allowing strict profiles to compose several changes into one pipeline.
+
+## Alternatives considered
+
+- Always use the fastest encoder: rejected as unnecessary quality loss.
+- Treat a maximum as a fixed target: rejected because it would upscale or
+  upmix.
+- Build a separate transcode per constraint: rejected because transformations
+  can be combined safely.
+
+## Consequences
+
+Any new policy participates in the same mismatch decision. A change that makes
+compatible video transcode requires explicit rationale and regression tests.
+The unconstrained video rate remains 8 Mbps at 1920x1080 scaled by output pixel
+count, with a 2 Mbps floor.
+
+---
+
+# ADR-008: Normalize audio independently and preserve compatible AAC
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Copy AAC when it satisfies the optional channel limit. Convert non-AAC audio to
+AAC. Downmix only when the source exceeds `-maxchan`; never upmix. Use 96 kbps
+mono, 192 kbps stereo, 384 kbps 5.1, 512 kbps 7.1, and 64 kbps per channel for
+other layouts. Use asynchronous resampling for transcoded live audio. Emit no
+audio options when no audio stream exists.
+
+## Reason
+
+Audio compatibility and video normalization are independent. Preserving
+compatible AAC avoids loss and cost, while non-AAC inputs and explicit channel
+ceilings still need deterministic normalization.
+
+## Consequences
+
+Video may copy while audio transcodes, or the reverse. Audio policy must never
+force unrelated video work.
+
+---
+
+# ADR-009: Make capability state persistent, authoritative, and safely degradable
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Store runtime state under `FFMPEG_SMART_STATE_DIR` when supplied and never rely
+on a replaceable installation directory for managed integrations. Cache active
+selection by current hardware/software identity while retaining reusable
+per-device measurements by physical signature across render-node swaps, host
+moves with equivalent devices, or removal of a second GPU. An explicit recache
+discards reusable measurements.
+
+`--cache-status` is read-only and prints one of `valid`, `missing`, `invalid`,
+`stale`, or `unavailable`. It succeeds only for `valid` and returns status 78
+otherwise. `--recache-only` performs maintenance without requiring media input.
+
+A live recache owns `.benchmark.lock`, identified by PID plus `/proc` start
+time. Only the top-level owner outside a Bash subshell may remove it. Managed
+integrations may set `FFMPEG_SMART_REQUIRE_CACHE=true` and opt into
+`FFMPEG_SMART_CACHE_FALLBACK=proxy`. The degraded path performs stream copy to
+MPEG-TS only; it does not approximate Smart policy or CPU transcode. A fallback
+marker is a notification signal, not proof of capability state.
+
+## Reason
+
+Install updates, host changes, and long hardware scans must not produce stale
+or executable state, false healthy status, lock races, or unexplained total
+service loss.
+
+## Alternatives considered
+
+- Source cache assignments: rejected as executable untrusted state.
+- Let consumers parse cache internals: rejected because validity belongs to the
+  wrapper.
+- CPU transcode during maintenance: rejected as unsafe host load and false
+  policy emulation.
+- PID-only lock identity: rejected because containers reuse PIDs.
+
+## Consequences
+
+Legacy caches require one rebuild. Degraded stream copy can still fail for an
+input that MPEG-TS cannot carry. Integrations enabling fallback must notify the
+operator and provide a recache path.
+
+---
+
+# ADR-010: Preserve typed mappings and phase ownership
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Represent every advanced FFmpeg argument as an array element within input,
+mapping, video, audio, or mux scope. Each scope supports inherit/add/replace;
+mapping also supports all. Reject structural options owned by the wrapper.
+Never parse a shell command string or use `eval`.
+
+Require exactly one normalized video. When subtitle, data, or attachment
+streams are mapped, explicitly copy them with `-c:s copy`, `-c:d copy`, and
+`-c:t copy`. FFmpeg remains authoritative for whether an auxiliary codec can be
+muxed into MPEG-TS.
+
+## Reason
+
+FFmpeg options are position-sensitive, and a single free-form field can move
+input flags to output scope, override hardware policy, inject shell syntax, or
+replace the fixed stdout destination. Explicit auxiliary copy avoids FFmpeg
+selecting an unavailable MPEG-TS encoder.
+
+## Consequences
+
+Every consumer must pass one option token per field/value. The wrapper retains
+ownership of input structure, hardware devices, video encoder/filter graph,
+and `-f mpegts pipe:1`. Incompatible mapped streams fail with a native,
+attributable FFmpeg error.
+
+---
+
+# ADR-011: Keep this repository canonical and downstream copies immutable
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+`matrix2669/ffmpeg-adaptive` is canonical for the runtime. A Dispatcharr plugin
+or other consumer may bundle a reviewed copy only when it records the source
+repository, immutable commit, path, and checksum and provides a reviewable
+check/sync process. Source changes never silently modify an existing tag,
+plugin archive, registry entry, or installation.
+
+## Reason
+
+The related plugin must be installable without network access, but duplicated
+source drifts unless exact identity and synchronization are explicit.
+
+## Consequences
+
+Moving from the prior fork to this repository requires a separate plugin pin,
+checksum, test, tag/registry, installation, and deployment decision. Repository
+bootstrap authorizes none of those promotions.
+
+---
+
+# ADR-012: Use semantic versions and immutable publication gates
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-29
+
+## Decision
+
+Use the workspace standalone `feature/fix -> dev -> main` lifecycle. `VERSION`
+and the entry-point version are the canonical project version. Beta tags are
+immutable `vMAJOR.MINOR.PATCH-beta.N` refs on tested `dev` commits; stable tags
+are immutable `vMAJOR.MINOR.PATCH` refs on `main`. A release requires the
+behavior, hardware/integration, provenance, ownership, archive-content, and
+checksum gates in `RELEASE.md`.
+
+## Reason
+
+Human-readable versions identify compatibility while immutable commits and
+checksums identify exact source. Licensing confidence and a passing unit suite
+do not replace real hardware/integration validation.
+
+## Consequences
+
+The initial `0.1.0` repository state is not a tag or Release. Tags, GitHub
+Releases, downstream pins, registry publication, and deployment remain
+separate explicit actions.

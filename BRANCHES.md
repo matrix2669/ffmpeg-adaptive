@@ -1,0 +1,44 @@
+# Branches
+
+This ledger records why every current branch exists. GitHub remains
+authoritative for live refs, commits, pull requests, and checks.
+
+## Maintenance rules
+
+- Add a record before the first substantive commit on a new branch.
+- Keep purpose, scope, base, target, validation, and disposition current.
+- Verify live heads before acting; `git status` is not remote proof.
+- Before deleting a branch, transfer user-visible results to `CHANGELOG.md` and
+  durable rationale to `DECISIONS.md`, then remove its record.
+
+## Branch index
+
+| Branch | Type | Status | Base | Target | Purpose |
+|---|---|---|---|---|---|
+| `main` | long-lived | active | clean root | stable releases | Production-ready standalone project history. |
+| `dev` | long-lived | active | `main` | `main` | Integrate and validate the next version after bootstrap. |
+
+## Branch records
+
+### `main`
+
+- Type: long-lived
+- Status: active
+- Created: 2026-08-29
+- Purpose: hold the independently authored MIT-licensed standalone project.
+- Initial scope: runtime, benchmarks, behavioral tests, governance,
+  provenance, and 2026-08-29 validation evidence.
+- Out of scope: tags, GitHub Releases, deployment, and downstream plugin pin
+  changes.
+- Validation: `./scripts/validate.sh`, fresh source-overlap audit, and the live
+  evidence in `docs/validation-2026-08-29.md`.
+- Related decisions: ADR-001 through ADR-012.
+
+### `dev`
+
+- Type: long-lived
+- Status: active
+- Base/target: `main` / `main`
+- Purpose: integrate post-bootstrap changes for the next beta or stable
+  version.
+- Validation: no unique commits at bootstrap.

@@ -1,0 +1,15 @@
+# Runtime state
+.benchmark.lock
+.capabilities.cache
+capabilities.v2
+benchmark-*.mkv
+benchmark-*.ts
+benchmark-*.log
+benchmark-results.tsv
+pipe-sample.*.ts
+
+# Test and editor artifacts
+*.bak
+*.log
+*.tmp
+.DS_Store
