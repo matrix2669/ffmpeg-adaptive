@@ -189,6 +189,13 @@ ffsmart_capacity_level_stable() {
     return "$status"
 }
 
+ffsmart_next_capacity_upper_level() {
+    local current="$1" maximum="$2" next
+    next=$((current + (current + 1) / 2))
+    (( next > maximum )) && next="$maximum"
+    printf '%s' "$next"
+}
+
 ffsmart_measure_capacity() {
     local node="$1" accel="$2" codec="$3" low_power="$4" speed="$5"
     local short="${CONCURRENCY_SHORT_DURATION:-10}" confirm="${CONCURRENCY_CONFIRM_DURATION:-30}" max="${CONCURRENCY_MAX_STREAMS:-48}"
@@ -207,15 +214,13 @@ ffsmart_measure_capacity() {
     done
     (( highest > 0 )) || highest=1
     if (( unstable == 0 )); then
-        level=$((highest * 2))
-        (( level > max )) && level="$max"
+        level="$(ffsmart_next_capacity_upper_level "$highest" "$max")"
         while (( level > highest )); do
             ffsmart_log "Capacity upper-bound node=$node level=$level duration=${short}s"
             if ffsmart_capacity_level_stable "$node" "$accel" "$codec" "$low_power" "$level" "$short"; then
                 highest="$level"
                 (( highest == max )) && break
-                level=$((highest * 2))
-                (( level > max )) && level="$max"
+                level="$(ffsmart_next_capacity_upper_level "$highest" "$max")"
             else
                 unstable="$level"
                 break

@@ -105,5 +105,8 @@ if ffsmart_capacity_level_stable /dev/dri/renderD128 vaapi h264 0 1 10; then
 fi
 elapsed=$(( $(date +%s) - started ))
 (( elapsed < 5 ))
+[[ "$(ffsmart_next_capacity_upper_level 1 48)" == 2 ]]
+[[ "$(ffsmart_next_capacity_upper_level 14 48)" == 21 ]]
+[[ "$(ffsmart_next_capacity_upper_level 32 48)" == 48 ]]
 
 echo 'Representative Main10 benchmark, selected-device policy, deadline, and hardware filter command tests passed'

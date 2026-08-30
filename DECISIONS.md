@@ -497,7 +497,9 @@ global best-device values; use conservative defaults for an unmatched path.
 Advance the capacity-policy fingerprint whenever command or acceptance policy
 changes, even if the serialized cache format does not change. Bound each
 concurrent level by wall time as well as media duration; terminate all jobs and
-reject the level if that deadline expires.
+reject the level if that deadline expires. Grow unbounded capacity probes by
+50% per step rather than doubling them, then use the same binary search and
+confirmation policy after finding an unstable upper bound.
 
 ## Reason
 

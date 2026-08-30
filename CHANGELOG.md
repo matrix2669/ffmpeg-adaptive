@@ -20,6 +20,9 @@ All notable user-visible changes are documented here.
 - Added a wall-clock deadline to every concurrent capacity level so a severely
   oversubscribed hardware probe is rejected and terminated instead of waiting
   indefinitely for its requested media duration.
+- Changed capacity upper-bound discovery from 100% to 50% growth per step,
+  reducing deliberate oversubscription while retaining exact binary-search
+  boundary selection.
 
 ### Validation
 
