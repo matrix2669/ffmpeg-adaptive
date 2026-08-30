@@ -196,6 +196,25 @@ ffsmart_next_capacity_upper_level() {
     printf '%s' "$next"
 }
 
+FFSMART_PATH_SPEED=0
+FFSMART_PATH_LOW_POWER=0
+ffsmart_benchmark_device_path() {
+    local node="$1" accel="$2" codec="$3" low_power speed
+    FFSMART_PATH_SPEED=0
+    FFSMART_PATH_LOW_POWER=0
+    ffsmart_encoder_available "${codec}_${accel}" || return 1
+    for low_power in 1 0; do
+        if speed="$(ffsmart_benchmark_candidate "$node" "$accel" "$codec" "$low_power" 5)"; then
+            ffsmart_log "Common-path candidate node=$node accel=$accel codec=$codec low_power=$low_power speed=${speed}x"
+            if awk -v a="$speed" -v b="$FFSMART_PATH_SPEED" 'BEGIN { exit !(a>b) }'; then
+                FFSMART_PATH_SPEED="$speed"
+                FFSMART_PATH_LOW_POWER="$low_power"
+            fi
+        fi
+    done
+    awk -v s="$FFSMART_PATH_SPEED" 'BEGIN { exit !(s>0) }'
+}
+
 ffsmart_measure_capacity() {
     local node="$1" accel="$2" codec="$3" low_power="$4" speed="$5"
     local short="${CONCURRENCY_SHORT_DURATION:-10}" confirm="${CONCURRENCY_CONFIRM_DURATION:-30}" max="${CONCURRENCY_MAX_STREAMS:-48}"
@@ -302,17 +321,50 @@ ffsmart_rebuild_cache() {
         fi
         [[ -n "$node_best_accel" ]] || continue
         ((compatible_nodes += 1))
-        if ffsmart_probe_10bit "$node" "$node_best_accel" decode; then d10=true; else d10=false; fi
-        if ffsmart_probe_10bit "$node" "$node_best_accel" encode; then e10=true; else e10=false; fi
         ffsmart_device_set accel "$node" "$node_best_accel"
         ffsmart_device_set codec "$node" "$node_best_codec"
         ffsmart_device_set low_power "$node" "$node_best_low"
-        ffsmart_device_set decode10 "$node" "$d10"
-        ffsmart_device_set encode10 "$node" "$e10"
         ffsmart_device_set speed "$node" "$node_best_speed"
         if awk -v a="$node_best_speed" -v b="$best_speed" 'BEGIN { exit !(a>b) }'; then
             best_speed="$node_best_speed"; best_node="$node"; best_accel="$node_best_accel"; best_codec="$node_best_codec"; best_low_power="$node_best_low"
         fi
+    done
+
+    if [[ -n "$best_node" ]]; then
+        for node in "${FFSMART_RENDER_NODES[@]}"; do
+            accel="$(ffsmart_device_get accel "$node" || true)"; [[ -n "$accel" ]] || continue
+            codec="$(ffsmart_device_get codec "$node" || true)"
+            if [[ "$accel" != "$best_accel" || "$codec" != "$best_codec" ]]; then
+                if ffsmart_benchmark_device_path "$node" "$best_accel" "$best_codec"; then
+                    ffsmart_device_set accel "$node" "$best_accel"
+                    ffsmart_device_set codec "$node" "$best_codec"
+                    ffsmart_device_set low_power "$node" "$FFSMART_PATH_LOW_POWER"
+                    ffsmart_device_set speed "$node" "$FFSMART_PATH_SPEED"
+                    ffsmart_device_set capacity "$node" ""
+                    ffsmart_log "Aligned device node=$node accel=$best_accel codec=$best_codec low_power=$FFSMART_PATH_LOW_POWER speed=${FFSMART_PATH_SPEED}x"
+                else
+                    ffsmart_log "Device node=$node has no working common path accel=$best_accel codec=$best_codec; retaining its independent best path"
+                fi
+            fi
+        done
+        best_speed=0
+        for node in "${FFSMART_RENDER_NODES[@]}"; do
+            ffsmart_device_matches_policy "$node" "$best_accel" "$best_codec" || continue
+            speed="$(ffsmart_device_get speed "$node")"
+            if awk -v a="$speed" -v b="$best_speed" 'BEGIN { exit !(a>b) }'; then
+                best_speed="$speed"
+                best_node="$node"
+                best_low_power="$(ffsmart_device_get low_power "$node")"
+            fi
+        done
+    fi
+
+    for node in "${FFSMART_RENDER_NODES[@]}"; do
+        accel="$(ffsmart_device_get accel "$node" || true)"; [[ -n "$accel" ]] || continue
+        if ffsmart_probe_10bit "$node" "$accel" decode; then d10=true; else d10=false; fi
+        if ffsmart_probe_10bit "$node" "$accel" encode; then e10=true; else e10=false; fi
+        ffsmart_device_set decode10 "$node" "$d10"
+        ffsmart_device_set encode10 "$node" "$e10"
     done
 
     if (( compatible_nodes > 1 )); then

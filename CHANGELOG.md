@@ -15,6 +15,9 @@ All notable user-visible changes are documented here.
   conservative capacity of one when no exact path was measured, and applied
   the selected device's own low-power and 10-bit-encode capabilities at
   runtime.
+- Rebenchmarked compatible secondary GPUs on the globally selected
+  accelerator/codec before capacity measurement, so automatic multi-GPU
+  scheduling never combines capacities measured under different codecs.
 - Advanced the capacity-policy fingerprint so caches produced by the earlier
   benchmark command are reported stale and rebuilt before managed use.
 - Added a wall-clock deadline to every concurrent capacity level so a severely

@@ -67,6 +67,14 @@ ffsmart_apply_selected_device_policy
 [[ "$FFSMART_SELECTED_LOW_POWER" == 0 ]]
 [[ "$FFSMART_SELECTED_10BIT_ENCODE" == false ]]
 
+ffsmart_benchmark_candidate() {
+    if [[ "$4" == 1 ]]; then printf '9.5'; else printf '8.5'; fi
+}
+ffsmart_encoder_available() { return 0; }
+ffsmart_benchmark_device_path /dev/dri/renderD128 vaapi hevc
+[[ "$FFSMART_PATH_SPEED" == 9.5 ]]
+[[ "$FFSMART_PATH_LOW_POWER" == 1 ]]
+
 FFSMART_SELECTED_ACCEL=vaapi
 FFSMART_SELECTED_DEVICE=/dev/dri/renderD129
 FFSMART_TARGET_CODEC=h264
@@ -109,4 +117,4 @@ elapsed=$(( $(date +%s) - started ))
 [[ "$(ffsmart_next_capacity_upper_level 14 48)" == 21 ]]
 [[ "$(ffsmart_next_capacity_upper_level 32 48)" == 48 ]]
 
-echo 'Representative Main10 benchmark, selected-device policy, deadline, and hardware filter command tests passed'
+echo 'Representative Main10 benchmark, common-path device policy, deadline, and hardware filter command tests passed'

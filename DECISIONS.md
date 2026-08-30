@@ -493,6 +493,10 @@ device rows. If no exact row exists, preserve explicit accelerator/codec
 requests but schedule them at a conservative capacity of one. After selection,
 use that device row's low-power and 10-bit-encode capabilities rather than the
 global best-device values; use conservative defaults for an unmatched path.
+On multi-GPU hosts, choose the global path from discovery, rebenchmark every
+compatible secondary device on that same accelerator/codec, and only then
+measure per-device capacity. Retain an independent best path only when the
+device cannot run the selected common path.
 
 Advance the capacity-policy fingerprint whenever command or acceptance policy
 changes, even if the serialized cache format does not change. Bound each
