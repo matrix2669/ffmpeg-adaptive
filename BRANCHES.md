@@ -104,3 +104,8 @@ authoritative for live refs, commits, pull requests, and checks.
   exact archive/provenance checks; isolated two-GPU candidate and concurrency
   scan; managed cache rebuild; actual 1080p, 1080i, 720p, and `pipe:0` paths;
   final viewer/process audit.
+- Validation result: all planned pre-tag gates passed at `bebd9e4`; the common
+  VAAPI/HEVC cache confirmed Arc 18 and iGPU 14, all six current direct/pipe
+  media cases passed, staggered live work selected both devices with their own
+  low-power modes, and the final process audit was empty. See
+  `docs/beta2-capacity-fidelity-validation-2026-08-30.md`.

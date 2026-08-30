@@ -32,6 +32,10 @@ All notable user-visible changes are documented here.
 - Passed all 16 bounded QSV/VAAPI, H.264/HEVC, normal/low-power candidate
   combinations across the production Intel iGPU and Arc A310 with hardware
   decoding active.
+- Confirmed the common VAAPI/HEVC path at 18 simultaneous streams on Arc and
+  14 on the iGPU, including 30-second accepted/rejected boundary checks.
+- Passed current Dispatcharr 1080p, 1080i, 720p, `pipe:0`, decoded-frame
+  deinterlace, timestamp, and staggered two-GPU scheduling validation.
 
 ## [0.1.0-beta.1] - 2026-08-30
 
