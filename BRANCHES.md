@@ -17,6 +17,7 @@ authoritative for live refs, commits, pull requests, and checks.
 |---|---|---|---|---|---|
 | `main` | long-lived | active | clean root | stable releases | Production-ready standalone project history. |
 | `dev` | long-lived | active | `main` | `main` | Integrate and validate the next version after bootstrap. |
+| `feature/standalone-parity-validation` | short-lived | checkpointed | `dev@3256799` | `dev` | Record the repeat old/rewrite/standalone comparison against the standalone repository. |
 
 ## Branch records
 
@@ -42,3 +43,21 @@ authoritative for live refs, commits, pull requests, and checks.
 - Purpose: integrate post-bootstrap changes for the next beta or stable
   version.
 - Validation: no unique commits at bootstrap.
+
+### `feature/standalone-parity-validation`
+
+- Type: short-lived
+- Status: checkpointed
+- Created: 2026-08-29
+- Base/target: `dev@3256799` / `dev`
+- Purpose: preserve the repeat comparison of the old baseline, accepted clean
+  rewrite, and standalone `ffmpeg-adaptive` tree.
+- Scope: documentation of deterministic suites, fresh hardware discovery,
+  controlled fixtures, captured and current Dispatcharr streams, scheduling,
+  software fallback, performance, and final process/privacy audits.
+- Out of scope: runtime changes, merge, tag, release, deployment, Dispatcharr
+  configuration, and downstream pin changes.
+- Validation: `./scripts/validate.sh`, workspace standards reconciliation, and
+  the source-overlap audit; full evidence is recorded in
+  `docs/standalone-parity-validation-2026-08-29.md`.
+- Disposition: checkpoint for review; not integrated.

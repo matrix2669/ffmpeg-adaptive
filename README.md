@@ -150,6 +150,8 @@ Run the complete shell and behavior gate:
 Hardware and integration changes also require real FFmpeg tests on the target
 host. The initial Intel, Docker/LXC, live-stream, 1080p, 1080i, and 720p results
 are recorded in [docs/validation-2026-08-29.md](docs/validation-2026-08-29.md).
+The repeat comparison against the standalone repository is recorded in
+[docs/standalone-parity-validation-2026-08-29.md](docs/standalone-parity-validation-2026-08-29.md).
 
 ## License
 
