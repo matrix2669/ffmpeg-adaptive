@@ -18,6 +18,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `main` | long-lived | active | clean root | stable releases | Production-ready standalone project history. |
 | `dev` | long-lived | active | `main` | `main` | Integrate and validate the next version after bootstrap. |
 | `feature/standalone-parity-validation` | short-lived | checkpointed | `dev@3256799` | `dev` | Record the repeat old/rewrite/standalone comparison against the standalone repository. |
+| `feature/v0.1.0-beta.1-release` | short-lived | active | `dev@4a88851` | `dev` | Prepare the first immutable standalone beta tag for downstream plugin synchronization. |
 
 ## Branch records
 
@@ -61,3 +62,20 @@ authoritative for live refs, commits, pull requests, and checks.
   the source-overlap audit; full evidence is recorded in
   `docs/standalone-parity-validation-2026-08-29.md`.
 - Disposition: checkpoint for review; not integrated.
+
+### `feature/v0.1.0-beta.1-release`
+
+- Type: short-lived
+- Status: active
+- Created: 2026-08-30
+- Base/target: `dev@4a88851` / `dev`
+- Purpose: set the synchronized beta version after the standalone parity gate
+  and prepare the exact runtime tree for immutable downstream consumption.
+- Scope: version metadata, changelog, release archive inspection, checksum,
+  full repository validation, standards reconciliation, and fresh provenance
+  audit.
+- Out of scope: runtime behavior changes, stable promotion, plugin source
+  changes, registry publication, and deployment.
+- Expected outcome: validated `v0.1.0-beta.1` tag on `dev`, with no GitHub
+  prerelease unless separately approved.
+- Disposition: release candidate; not yet integrated or tagged.

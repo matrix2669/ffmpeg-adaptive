@@ -4,13 +4,13 @@ All notable user-visible changes are documented here.
 
 ## Unreleased
 
+## [0.1.0-beta.1] - 2026-08-30
+
 ### Validation
 
 - Repeated the complete baseline/rewrite comparison against the standalone
   repository, including current Dispatcharr 1080p, 1080i, and 720p streams;
   found no unintended behavioral, media, scheduling, or performance change.
-
-## [0.1.0] - 2026-08-29
 
 ### Added
 
