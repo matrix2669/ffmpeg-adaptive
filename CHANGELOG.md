@@ -4,6 +4,26 @@ All notable user-visible changes are documented here.
 
 ## Unreleased
 
+## [0.1.0-beta.2] - 2026-08-30
+
+### Fixed
+
+- Made QSV and VAAPI capacity measurements use the same hardware-decoder
+  initialization and hardware-frame path as normal transcodes instead of
+  combining software decode with hardware upload.
+- Preferred devices measured for the requested accelerator and codec, used a
+  conservative capacity of one when no exact path was measured, and applied
+  the selected device's own low-power and 10-bit-encode capabilities at
+  runtime.
+- Advanced the capacity-policy fingerprint so caches produced by the earlier
+  benchmark command are reported stale and rebuilt before managed use.
+
+### Validation
+
+- Passed all 16 bounded QSV/VAAPI, H.264/HEVC, normal/low-power candidate
+  combinations across the production Intel iGPU and Arc A310 with hardware
+  decoding active.
+
 ## [0.1.0-beta.1] - 2026-08-30
 
 ### Validation

@@ -135,9 +135,12 @@ input, hardware device, video encoder, hardware filter graph, and final
 ## Benchmarks
 
 `benchmark-accel.sh` records candidate results. `benchmark-live.sh` exercises
-the production wrapper against a local or live input. Capacity results are not
-portable defaults: rerun the capability scan after hardware, driver, FFmpeg,
-container, or host changes.
+the production wrapper against a local or live input. QSV and VAAPI capacity
+tests use the same hardware-decoder initialization as production transcodes,
+and each cached capacity is tied to that device's measured accelerator, codec,
+low-power mode, and 10-bit capabilities. Capacity results are not portable
+defaults: rerun the capability scan after hardware, driver, FFmpeg, container,
+or host changes.
 
 ## Validation
 

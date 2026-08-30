@@ -72,6 +72,19 @@ The standalone extraction also rewrote the earlier shared version-validation
 plumbing and the two common runtime mechanics identified by the first rewrite
 audit.
 
+The fresh 2026-08-30 `0.1.0-beta.2` audit repeated the normalized non-comment
+shell comparison after the hardware-path correction:
+
+- Unlicensed upstream `99899d05affa501404ef2d2b926136a80bb87c75`:
+  zero identical lines at both 32- and 48-character thresholds.
+- Mixed-rights baseline `7829924588336f1de07f18d944472c429a32c5b1`:
+  zero identical lines at the 48-character threshold and five isolated
+  32-character matches. All five are unchanged test-fixture mechanics; none is
+  runtime or benchmark implementation.
+- The shared hardware-decoder constructor, device-policy eligibility, and
+  selected-device capability changes introduced for this beta produced no new
+  substantive overlap with either restricted comparison source.
+
 Before the initial commit and every release, rerun the comparison against both
 recorded baselines, inspect near-identical structure/comments/messages, and
 record the exact result here. A mechanical match threshold is evidence, not a

@@ -469,3 +469,57 @@ do not replace real hardware/integration validation.
 The initial `0.1.0` repository state is not a tag or Release. Tags, GitHub
 Releases, downstream pins, registry publication, and deployment remain
 separate explicit actions.
+
+---
+
+# ADR-013: Bind measured capacity to the production hardware path
+
+## Status
+
+Accepted
+
+## Date
+
+2026-08-30
+
+## Decision
+
+Build QSV and VAAPI benchmark input arguments with the same hardware-decoder
+constructor used by normal transcodes. Keep the representative Main10 fixture
+and perform any required pixel-format conversion on hardware frames. A cached
+device capacity is eligible for automatic scheduling only when its measured
+accelerator and codec match the requested runtime path. Prefer exact matching
+device rows. If no exact row exists, preserve explicit accelerator/codec
+requests but schedule them at a conservative capacity of one. After selection,
+use that device row's low-power and 10-bit-encode capabilities rather than the
+global best-device values; use conservative defaults for an unmatched path.
+
+Advance the capacity-policy fingerprint whenever command or acceptance policy
+changes, even if the serialized cache format does not change.
+
+## Reason
+
+The earlier benchmark initialized an encoder device but decoded the fixture in
+software before uploading frames. Production transcodes hardware-decode on the
+selected device. That made the measured capacity a different workload and
+allowed the primary device's low-power choice to be applied to a secondary
+device measured under another mode.
+
+## Alternatives considered
+
+- Retain software decode as an encoder-only capacity test: rejected because it
+  cannot represent end-to-end live-transcode contention.
+- Apply the globally fastest path to every device: rejected because per-device
+  capacity is only meaningful for the path that produced it.
+- Add accelerator/codec-specific capacities for every device: deferred; one
+  measured best path per device remains sufficient while runtime eligibility
+  enforces identity.
+
+## Consequences
+
+Policy-2 caches are stale and require one rebuild. Reported totals may be lower
+than encoder-only measurements because decoding now consumes the same hardware
+resources as production. A requested path that differs from every best
+per-device row remains available, but it schedules with capacity one and
+conservative encoder capabilities until the cache format can represent a full
+per-path capacity matrix.

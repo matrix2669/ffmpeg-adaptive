@@ -19,6 +19,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `dev` | long-lived | active | `main` | `main` | Integrate and validate the next version after bootstrap. |
 | `feature/standalone-parity-validation` | short-lived | integrated | `dev@3256799` | `dev` | Record the repeat old/rewrite/standalone comparison against the standalone repository. |
 | `feature/v0.1.0-beta.1-release` | short-lived | integrated | `dev@4a88851` | `dev` | Prepare the first immutable standalone beta tag for downstream plugin synchronization. |
+| `fix/benchmark-runtime-fidelity` | short-lived | active | `dev@80d648b` | `dev` | Make capacity measurements and per-device runtime policy use equivalent hardware commands. |
 
 ## Branch records
 
@@ -84,3 +85,22 @@ authoritative for live refs, commits, pull requests, and checks.
   prerelease unless separately approved.
 - Disposition: integrated into `dev`; the final validated `dev` commit is the
   immutable `v0.1.0-beta.1` tag target.
+
+### `fix/benchmark-runtime-fidelity`
+
+- Type: short-lived fix
+- Status: active
+- Created: 2026-08-30
+- Base/target: `dev@80d648b` / `dev`
+- Purpose: correct the capacity benchmark so QSV/VAAPI candidates use the same
+  hardware-decode device path as normal transcodes and apply the selected
+  device's measured low-power mode at runtime.
+- Scope: canonical hardware command construction, selected-device policy,
+  focused regressions, decisions, dependency/validation records, beta version,
+  and downstream immutable pin/deployment validation.
+- Out of scope: stable promotion, GitHub Release, new UI controls, Stream Sort,
+  unrelated wrapper policy, and branch deletion.
+- Validation plan: complete repository suite; command-structure regressions;
+  exact archive/provenance checks; isolated two-GPU candidate and concurrency
+  scan; managed cache rebuild; actual 1080p, 1080i, 720p, and `pipe:0` paths;
+  final viewer/process audit.

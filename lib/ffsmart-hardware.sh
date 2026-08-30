@@ -8,6 +8,31 @@ ffsmart_decoder_available() {
     ffmpeg -hide_banner -decoders 2>/dev/null | awk '{print $2}' | grep -Fxq -- "$1"
 }
 
+FFSMART_HW_DECODE_ARGS=()
+ffsmart_build_hardware_decode_args() {
+    local accel="$1" node="$2"
+    FFSMART_HW_DECODE_ARGS=()
+    case "$accel" in
+        qsv)
+            FFSMART_HW_DECODE_ARGS=(
+                -init_hw_device "qsv=ffsmart:hw,child_device=$node"
+                -filter_hw_device ffsmart
+                -hwaccel qsv
+                -hwaccel_output_format qsv
+            ) ;;
+        vaapi)
+            FFSMART_HW_DECODE_ARGS=(
+                -init_hw_device "vaapi=ffsmart:$node"
+                -filter_hw_device ffsmart
+                -hwaccel vaapi
+                -hwaccel_device ffsmart
+                -hwaccel_output_format vaapi
+            ) ;;
+        software) ;;
+        *) return 1 ;;
+    esac
+}
+
 ffsmart_ensure_benchmark_samples() {
     local h264="$FFSMART_STATE_DIR/benchmark-h264.mkv"
     local hevc10="$FFSMART_STATE_DIR/benchmark-hevc10.mkv"
@@ -36,25 +61,27 @@ ffsmart_ensure_benchmark_samples() {
 FFSMART_BENCH_CMD=()
 ffsmart_build_benchmark_command() {
     local node="$1" accel="$2" codec="$3" low_power="$4" duration="$5"
-    local encoder filter source="$FFSMART_H264_SAMPLE" upload_format=nv12
+    local encoder filter source="$FFSMART_H264_SAMPLE" surface_format=nv12
     if [[ -s "$FFSMART_HEVC10_SAMPLE" ]]; then
         source="$FFSMART_HEVC10_SAMPLE"
-        [[ "$codec" == hevc ]] && upload_format=p010le
+        [[ "$codec" == hevc ]] && surface_format=p010
     fi
     FFSMART_BENCH_CMD=(ffmpeg -hide_banner -nostdin -stats -stream_loop -1 -i "$source" -map 0:v:0 -an -t "$duration")
     case "$accel" in
         qsv)
             encoder="${codec}_qsv"
-            filter="format=$upload_format,hwupload=extra_hw_frames=64"
+            filter="vpp_qsv=format=$surface_format"
+            ffsmart_build_hardware_decode_args "$accel" "$node" || return 1
             FFSMART_BENCH_CMD=(ffmpeg -hide_banner -nostdin -stats \
-                -init_hw_device "qsv=ffsmart:hw,child_device=$node" -filter_hw_device ffsmart \
+                "${FFSMART_HW_DECODE_ARGS[@]}" \
                 -stream_loop -1 -i "$source" -map 0:v:0 -an -t "$duration" \
                 -vf "$filter" -c:v "$encoder") ;;
         vaapi)
             encoder="${codec}_vaapi"
-            filter="format=$upload_format,hwupload"
+            filter="scale_vaapi=format=$surface_format"
+            ffsmart_build_hardware_decode_args "$accel" "$node" || return 1
             FFSMART_BENCH_CMD=(ffmpeg -hide_banner -nostdin -stats \
-                -vaapi_device "$node" -stream_loop -1 -i "$source" \
+                "${FFSMART_HW_DECODE_ARGS[@]}" -stream_loop -1 -i "$source" \
                 -map 0:v:0 -an -t "$duration" -vf "$filter" -c:v "$encoder") ;;
         software)
             if [[ "$codec" == hevc ]]; then encoder=libx265; else encoder=libx264; fi
@@ -64,7 +91,7 @@ ffsmart_build_benchmark_command() {
     if [[ "$low_power" == 1 ]]; then
         FFSMART_BENCH_CMD+=( -low_power 1 )
     fi
-    [[ "$codec" == hevc && "$upload_format" == p010le ]] && FFSMART_BENCH_CMD+=( -profile:v main10 )
+    [[ "$codec" == hevc && "$surface_format" == p010 ]] && FFSMART_BENCH_CMD+=( -profile:v main10 )
     FFSMART_BENCH_CMD+=( -b:v 4500k -maxrate 6000k -bufsize 12000k -f null - )
 }
 
@@ -327,11 +354,18 @@ ffsmart_job_load_milli() {
     awk -v wi="$width_in" -v hi="$height_in" -v wo="$width_out" -v ho="$height_out" -v f="$fps_dec" 'BEGIN { a=wi*hi*f; b=wo*ho*f; m=(a>b?a:b); printf "%.0f", 1000*m/(1920*1080*30) }'
 }
 
+ffsmart_device_matches_policy() {
+    local node="$1" accel="$2" codec="$3"
+    [[ "$(ffsmart_device_get accel "$node" 2>/dev/null || true)" == "$accel" ]] || return 1
+    [[ "$(ffsmart_device_get codec "$node" 2>/dev/null || true)" == "$codec" ]]
+}
+
 ffsmart_select_device() {
-    local accel="$1" explicit="" primary secondary node pid fd target load capacity util best_util="" selected=""
+    local accel="$1" codec="${2:-}" explicit="" primary secondary node pid fd target load capacity util best_util="" selected=""
+    local has_exact=false has_accel=false node_accel="" node_codec=""
     case "$accel" in
-        qsv) explicit="${FFSMART_QSV_DEVICE:-$FFSMART_DRI_DEVICE}" ;;
-        vaapi) explicit="${FFSMART_VAAPI_DEVICE:-$FFSMART_DRI_DEVICE}" ;;
+        qsv) explicit="${FFSMART_QSV_DEVICE:-${FFSMART_DRI_DEVICE:-}}" ;;
+        vaapi) explicit="${FFSMART_VAAPI_DEVICE:-${FFSMART_DRI_DEVICE:-}}" ;;
     esac
     if [[ -n "$explicit" ]]; then
         [[ -e "$explicit" ]] || { ffsmart_configuration_error "Configured device does not exist: $explicit"; return 64; }
@@ -362,17 +396,61 @@ ffsmart_select_device() {
 
     for node in "$primary" "$secondary"; do
         [[ "$node" != - ]] || continue
-        [[ "$(ffsmart_device_get accel "$node" || true)" == "$accel" ]] || continue
-        capacity="$(ffsmart_device_get capacity "$node" || printf '1')"
+        node_accel="$(ffsmart_device_get accel "$node" 2>/dev/null || true)"
+        node_codec="$(ffsmart_device_get codec "$node" 2>/dev/null || true)"
+        [[ "$node_accel" == "$accel" ]] && has_accel=true
+        [[ "$node_accel" == "$accel" && "$node_codec" == "$codec" ]] && has_exact=true
+    done
+
+    for node in "$primary" "$secondary"; do
+        [[ "$node" != - ]] || continue
+        node_accel="$(ffsmart_device_get accel "$node" 2>/dev/null || true)"
+        node_codec="$(ffsmart_device_get codec "$node" 2>/dev/null || true)"
+        if [[ "$has_exact" == true ]]; then
+            [[ "$node_accel" == "$accel" && "$node_codec" == "$codec" ]] || continue
+        elif [[ "$has_accel" == true ]]; then
+            [[ "$node_accel" == "$accel" ]] || continue
+        fi
+        if [[ "$node_accel" == "$accel" && "$node_codec" == "$codec" ]]; then
+            capacity="$(ffsmart_device_get capacity "$node" || printf '1')"
+        else
+            capacity=1
+        fi
         if [[ "$node" == "$primary" ]]; then load="$primary_load"; else load="$secondary_load"; fi
         util="$(awk -v l="$load" -v c="$capacity" 'BEGIN { printf "%.9f", l/(c*1000) }')"
         if [[ -z "$selected" ]] || awk -v a="$util" -v b="$best_util" 'BEGIN { exit !(a<b) }'; then
             selected="$node"; best_util="$util"
         fi
     done
-    [[ -n "$selected" ]] || selected="$primary"
+    if [[ -z "$selected" ]]; then
+        ffsmart_fail 78 capability-cache-incompatible "Capability cache has no selectable device; rebuild the hardware cache"
+        return 78
+    fi
     FFSMART_SELECTED_DEVICE="$selected"
     if [[ "$selected" == "$primary" ]]; then load="$primary_load"; else load="$secondary_load"; fi
-    capacity="$(ffsmart_device_get capacity "$selected" || printf '1')"
+    if ffsmart_device_matches_policy "$selected" "$accel" "$codec"; then
+        capacity="$(ffsmart_device_get capacity "$selected" || printf '1')"
+    else
+        capacity=1
+        ffsmart_warn unmeasured-device-policy "No device capacity was measured for accelerator=$accel codec=$codec; scheduling $selected conservatively at capacity=1"
+    fi
     ffsmart_log "Automatic device selection: $selected load=${load}m capacity=$capacity utilization=$best_util"
+}
+
+ffsmart_apply_selected_device_policy() {
+    local node="${FFSMART_SELECTED_DEVICE:-}" cached_accel="" cached_codec=""
+    FFSMART_SELECTED_LOW_POWER=0
+    FFSMART_SELECTED_10BIT_ENCODE=false
+    [[ "$FFSMART_SELECTED_ACCEL" =~ ^(qsv|vaapi)$ ]] || return 0
+    if [[ -n "$node" ]]; then
+        cached_accel="$(ffsmart_device_get accel "$node" 2>/dev/null || true)"
+        cached_codec="$(ffsmart_device_get codec "$node" 2>/dev/null || true)"
+    fi
+    if [[ "$cached_accel" == "$FFSMART_SELECTED_ACCEL" && "$cached_codec" == "$FFSMART_TARGET_CODEC" ]]; then
+        FFSMART_SELECTED_LOW_POWER="$(ffsmart_device_get low_power "$node" 2>/dev/null || printf '0')"
+        FFSMART_SELECTED_10BIT_ENCODE="$(ffsmart_device_get encode10 "$node" 2>/dev/null || printf 'false')"
+    else
+        ffsmart_warn selected-device-unmeasured "Device $node was not measured for accelerator=$FFSMART_SELECTED_ACCEL codec=$FFSMART_TARGET_CODEC; using conservative encoder capabilities"
+    fi
+    ffsmart_log "Selected device policy: device=$node accel=$FFSMART_SELECTED_ACCEL codec=$FFSMART_TARGET_CODEC low_power=$FFSMART_SELECTED_LOW_POWER encode10=$FFSMART_SELECTED_10BIT_ENCODE"
 }
