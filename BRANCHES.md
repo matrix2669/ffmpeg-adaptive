@@ -19,7 +19,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `dev` | long-lived | active | `main` | `main` | Integrate and validate the next version after bootstrap. |
 | `feature/standalone-parity-validation` | short-lived | integrated | `dev@3256799` | `dev` | Record the repeat old/rewrite/standalone comparison against the standalone repository. |
 | `feature/v0.1.0-beta.1-release` | short-lived | integrated | `dev@4a88851` | `dev` | Prepare the first immutable standalone beta tag for downstream plugin synchronization. |
-| `fix/benchmark-runtime-fidelity` | short-lived | active | `dev@80d648b` | `dev` | Make capacity measurements and per-device runtime policy use equivalent hardware commands. |
+| `fix/benchmark-runtime-fidelity` | short-lived | integrated | `dev@80d648b` | `dev` | Make capacity measurements and per-device runtime policy use equivalent hardware commands. |
 
 ## Branch records
 
@@ -35,7 +35,7 @@ authoritative for live refs, commits, pull requests, and checks.
   changes.
 - Validation: `./scripts/validate.sh`, fresh source-overlap audit, and the live
   evidence in `docs/validation-2026-08-29.md`.
-- Related decisions: ADR-001 through ADR-012.
+- Related decisions: ADR-001 through ADR-013.
 
 ### `dev`
 
@@ -44,8 +44,9 @@ authoritative for live refs, commits, pull requests, and checks.
 - Base/target: `main` / `main`
 - Purpose: integrate post-bootstrap changes for the next beta or stable
   version.
-- Current release candidate: `0.1.0-beta.1`, including the standalone parity
-  evidence and synchronized release metadata.
+- Current release candidate: `0.1.0-beta.2`, including the corrected common
+  hardware path, per-device runtime policy, bounded capacity discovery, and
+  synchronized validation evidence.
 - Validation: complete repository suite, repeated Intel iGPU/Arc A310 and
   Dispatcharr 1080p/1080i/720p comparison, standards reconciliation, fresh
   source-overlap audit, and inspected runtime archive.
@@ -89,7 +90,7 @@ authoritative for live refs, commits, pull requests, and checks.
 ### `fix/benchmark-runtime-fidelity`
 
 - Type: short-lived fix
-- Status: active
+- Status: integrated
 - Created: 2026-08-30
 - Base/target: `dev@80d648b` / `dev`
 - Purpose: correct the capacity benchmark so QSV/VAAPI candidates use the same
@@ -109,3 +110,5 @@ authoritative for live refs, commits, pull requests, and checks.
   media cases passed, staggered live work selected both devices with their own
   low-power modes, and the final process audit was empty. See
   `docs/beta2-capacity-fidelity-validation-2026-08-30.md`.
+- Disposition: fast-forwarded into `dev`; the final release-metadata commit on
+  `dev` is the intended immutable `v0.1.0-beta.2` tag target.
