@@ -495,7 +495,9 @@ use that device row's low-power and 10-bit-encode capabilities rather than the
 global best-device values; use conservative defaults for an unmatched path.
 
 Advance the capacity-policy fingerprint whenever command or acceptance policy
-changes, even if the serialized cache format does not change.
+changes, even if the serialized cache format does not change. Bound each
+concurrent level by wall time as well as media duration; terminate all jobs and
+reject the level if that deadline expires.
 
 ## Reason
 
@@ -522,4 +524,5 @@ than encoder-only measurements because decoding now consumes the same hardware
 resources as production. A requested path that differs from every best
 per-device row remains available, but it schedules with capacity one and
 conservative encoder capabilities until the cache format can represent a full
-per-path capacity matrix.
+per-path capacity matrix. Deliberately unstable upper-bound probes can no
+longer hold a cache rebuild open indefinitely.

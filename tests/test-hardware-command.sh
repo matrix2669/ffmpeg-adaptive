@@ -95,4 +95,15 @@ ffsmart_build_filters
 printf '%s\n' "${FFSMART_FILTER_ARGS[@]}" | grep -Fq 'zscale=t=linear'
 printf '%s\n' "${FFSMART_FILTER_ARGS[@]}" | grep -Fq 'hwupload'
 
-echo 'Representative Main10 benchmark, selected-device policy, and hardware filter command tests passed'
+ffsmart_build_benchmark_command() { FFSMART_BENCH_CMD=(sleep 5); }
+FFSMART_STATE_DIR="$test_dir"
+CONCURRENCY_WALL_TIMEOUT=1
+started="$(date +%s)"
+if ffsmart_capacity_level_stable /dev/dri/renderD128 vaapi h264 0 1 10; then
+    echo 'Capacity deadline unexpectedly accepted a timed-out job' >&2
+    exit 1
+fi
+elapsed=$(( $(date +%s) - started ))
+(( elapsed < 5 ))
+
+echo 'Representative Main10 benchmark, selected-device policy, deadline, and hardware filter command tests passed'

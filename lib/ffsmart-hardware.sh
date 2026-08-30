@@ -144,6 +144,10 @@ ffsmart_probe_10bit() {
 ffsmart_capacity_level_stable() {
     local node="$1" accel="$2" codec="$3" low_power="$4" level="$5" duration="$6"
     local min_speed="${CONCURRENCY_MIN_SPEED:-1.2}" pids=() logs=() index status=0 speed log
+    local wall_timeout="${CONCURRENCY_WALL_TIMEOUT:-$((duration + 30))}" watchdog_pid timeout_marker
+    ffsmart_positive_integer "$wall_timeout" || wall_timeout=$((duration + 30))
+    timeout_marker="$FFSMART_STATE_DIR/.capacity-timeout.$$"
+    rm -f -- "$timeout_marker"
     for ((index=1; index<=level; index++)); do
         log="$FFSMART_STATE_DIR/capacity-${node##*/}-${level}-${index}.log"
         ffsmart_build_benchmark_command "$node" "$accel" "$codec" "$low_power" "$duration" || return 1
@@ -151,6 +155,20 @@ ffsmart_capacity_level_stable() {
         pids+=("$!")
         logs+=("$log")
     done
+    (
+        watchdog_sleep=""
+        trap '[[ -z "$watchdog_sleep" ]] || kill "$watchdog_sleep" 2>/dev/null || true; exit 0' TERM INT
+        sleep "$wall_timeout" &
+        watchdog_sleep="$!"
+        wait "$watchdog_sleep" || exit 0
+        trap - TERM INT
+        printf 'timeout\n' > "$timeout_marker"
+        ffsmart_log "Capacity probe deadline node=$node level=$level wall=${wall_timeout}s"
+        for index in "${pids[@]}"; do kill -TERM "$index" 2>/dev/null || true; done
+        sleep 2
+        for index in "${pids[@]}"; do kill -KILL "$index" 2>/dev/null || true; done
+    ) &
+    watchdog_pid="$!"
     for index in "${!pids[@]}"; do
         if ! wait "${pids[$index]}"; then
             status=1
@@ -160,6 +178,14 @@ ffsmart_capacity_level_stable() {
             status=1
         fi
     done
+    if kill -0 "$watchdog_pid" 2>/dev/null; then
+        kill "$watchdog_pid" 2>/dev/null || true
+    fi
+    wait "$watchdog_pid" 2>/dev/null || true
+    if [[ -e "$timeout_marker" ]]; then
+        status=1
+        rm -f -- "$timeout_marker"
+    fi
     return "$status"
 }
 

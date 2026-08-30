@@ -17,6 +17,9 @@ All notable user-visible changes are documented here.
   runtime.
 - Advanced the capacity-policy fingerprint so caches produced by the earlier
   benchmark command are reported stale and rebuilt before managed use.
+- Added a wall-clock deadline to every concurrent capacity level so a severely
+  oversubscribed hardware probe is rejected and terminated instead of waiting
+  indefinitely for its requested media duration.
 
 ### Validation
 
