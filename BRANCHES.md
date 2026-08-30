@@ -17,8 +17,8 @@ authoritative for live refs, commits, pull requests, and checks.
 |---|---|---|---|---|---|
 | `main` | long-lived | active | clean root | stable releases | Production-ready standalone project history. |
 | `dev` | long-lived | active | `main` | `main` | Integrate and validate the next version after bootstrap. |
-| `feature/standalone-parity-validation` | short-lived | checkpointed | `dev@3256799` | `dev` | Record the repeat old/rewrite/standalone comparison against the standalone repository. |
-| `feature/v0.1.0-beta.1-release` | short-lived | active | `dev@4a88851` | `dev` | Prepare the first immutable standalone beta tag for downstream plugin synchronization. |
+| `feature/standalone-parity-validation` | short-lived | integrated | `dev@3256799` | `dev` | Record the repeat old/rewrite/standalone comparison against the standalone repository. |
+| `feature/v0.1.0-beta.1-release` | short-lived | integrated | `dev@4a88851` | `dev` | Prepare the first immutable standalone beta tag for downstream plugin synchronization. |
 
 ## Branch records
 
@@ -43,12 +43,16 @@ authoritative for live refs, commits, pull requests, and checks.
 - Base/target: `main` / `main`
 - Purpose: integrate post-bootstrap changes for the next beta or stable
   version.
-- Validation: no unique commits at bootstrap.
+- Current release candidate: `0.1.0-beta.1`, including the standalone parity
+  evidence and synchronized release metadata.
+- Validation: complete repository suite, repeated Intel iGPU/Arc A310 and
+  Dispatcharr 1080p/1080i/720p comparison, standards reconciliation, fresh
+  source-overlap audit, and inspected runtime archive.
 
 ### `feature/standalone-parity-validation`
 
 - Type: short-lived
-- Status: checkpointed
+- Status: integrated
 - Created: 2026-08-29
 - Base/target: `dev@3256799` / `dev`
 - Purpose: preserve the repeat comparison of the old baseline, accepted clean
@@ -61,12 +65,12 @@ authoritative for live refs, commits, pull requests, and checks.
 - Validation: `./scripts/validate.sh`, workspace standards reconciliation, and
   the source-overlap audit; full evidence is recorded in
   `docs/standalone-parity-validation-2026-08-29.md`.
-- Disposition: checkpoint for review; not integrated.
+- Disposition: integrated into `dev` for `v0.1.0-beta.1`.
 
 ### `feature/v0.1.0-beta.1-release`
 
 - Type: short-lived
-- Status: active
+- Status: integrated
 - Created: 2026-08-30
 - Base/target: `dev@4a88851` / `dev`
 - Purpose: set the synchronized beta version after the standalone parity gate
@@ -78,4 +82,5 @@ authoritative for live refs, commits, pull requests, and checks.
   changes, registry publication, and deployment.
 - Expected outcome: validated `v0.1.0-beta.1` tag on `dev`, with no GitHub
   prerelease unless separately approved.
-- Disposition: release candidate; not yet integrated or tagged.
+- Disposition: integrated into `dev`; the final validated `dev` commit is the
+  immutable `v0.1.0-beta.1` tag target.
