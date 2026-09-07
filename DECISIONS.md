@@ -532,3 +532,35 @@ per-device row remains available, but it schedules with capacity one and
 conservative encoder capabilities until the cache format can represent a full
 per-path capacity matrix. Deliberately unstable upper-bound probes can no
 longer hold a cache rebuild open indefinitely.
+
+---
+
+# ADR-014: Treat benchmark diagnostic persistence as benchmark integrity
+
+## Status
+
+Accepted
+
+## Date
+
+2026-09-07
+
+## Decision
+
+Run each hardware benchmark in a fresh private diagnostics directory. A failed
+diagnostic-file creation is a benchmark failure (status 73), never evidence that
+a hardware path is unavailable. Only after a successful capability-cache write,
+publish one consolidated `benchmark-latest.log` and remove older per-worker
+candidate, capacity, and 10-bit logs. Failed runs retain their private evidence.
+
+## Reason
+
+Root-owned historical worker logs made a `dispatch`-owned rebuild unable to
+write hardware diagnostics. The old code treated each failed candidate as an
+ordinary unsupported path, then successfully saved a software-only cache.
+
+## Consequences
+
+A state-directory ownership error is visible and repairable rather than silently
+causing CPU encoding. The retained latest log is diagnostic-only and not part of
+cache validity or runtime selection.

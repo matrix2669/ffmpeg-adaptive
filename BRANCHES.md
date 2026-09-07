@@ -20,6 +20,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `feature/standalone-parity-validation` | short-lived | integrated | `dev@3256799` | `dev` | Record the repeat old/rewrite/standalone comparison against the standalone repository. |
 | `feature/v0.1.0-beta.1-release` | short-lived | integrated | `dev@4a88851` | `dev` | Prepare the first immutable standalone beta tag for downstream plugin synchronization. |
 | `fix/benchmark-runtime-fidelity` | short-lived | integrated | `dev@80d648b` | `dev` | Make capacity measurements and per-device runtime policy use equivalent hardware commands. |
+| `fix/benchmark-log-integrity` | short-lived | active | `dev@4df6c12` | `dev` | Fail unsafe benchmark diagnostics and retain only the latest successful consolidated log. |
 
 ## Branch records
 
@@ -112,3 +113,15 @@ authoritative for live refs, commits, pull requests, and checks.
   `docs/beta2-capacity-fidelity-validation-2026-08-30.md`.
 - Disposition: fast-forwarded into `dev`; the final release-metadata commit on
   `dev` is the intended immutable `v0.1.0-beta.2` tag target.
+
+### `fix/benchmark-log-integrity`
+
+- Type: short-lived fix
+- Status: active
+- Created: 2026-09-07
+- Base/target: `dev@4df6c12` / `dev`
+- Scope: fail cache rebuilds when benchmark diagnostics cannot be written; retain
+  one consolidated `benchmark-latest.log` only after a successful cache write;
+  purge older per-worker diagnostics only then; focused regression coverage.
+- Out of scope: tag, release, plugin pin, registry publication, deployment, and
+  changes to benchmark policy or capacity selection.

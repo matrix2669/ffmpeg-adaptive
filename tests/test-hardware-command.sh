@@ -117,4 +117,15 @@ elapsed=$(( $(date +%s) - started ))
 [[ "$(ffsmart_next_capacity_upper_level 14 48)" == 21 ]]
 [[ "$(ffsmart_next_capacity_upper_level 32 48)" == 48 ]]
 
+blocked_logs="$test_dir/blocked-logs"
+mkdir "$blocked_logs"
+mkdir "$blocked_logs/candidate-renderD128-vaapi-h264-0.log"
+FFSMART_BENCHMARK_RUN_DIR="$blocked_logs"
+FFSMART_BENCHMARK_LOG_FAILURE=false
+if ffsmart_prepare_benchmark_log "$blocked_logs/candidate-renderD128-vaapi-h264-0.log"; then
+    echo 'Benchmark diagnostic setup unexpectedly accepted an unwritable target' >&2
+    exit 1
+fi
+[[ "$FFSMART_BENCHMARK_LOG_FAILURE" == true ]]
+
 echo 'Representative Main10 benchmark, common-path device policy, deadline, and hardware filter command tests passed'
