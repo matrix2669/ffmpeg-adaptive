@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-VERSION="0.1.0-beta.2"
+VERSION="0.1.0-beta.3"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FFSMART_ENTRYPOINT="$root/ffmpeg-smart.sh"
 source "$root/lib/ffsmart-common.sh"

@@ -4,6 +4,15 @@ All notable user-visible changes are documented here.
 
 ## Unreleased
 
+## [0.1.0-beta.3] - 2026-09-07
+
+### Fixed
+
+- Fail a hardware-cache rebuild when benchmark diagnostics cannot be written,
+  rather than saving a software-only result as a completed hardware benchmark.
+- Retain one consolidated `benchmark-latest.log` after a successful rebuild and
+  remove older per-worker benchmark diagnostics.
+
 ## [0.1.0-beta.2] - 2026-08-30
 
 ### Fixed

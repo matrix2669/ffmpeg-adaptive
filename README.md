@@ -35,6 +35,11 @@ The production validation recorded in this repository used FFmpeg 8.1.2 with
 an Intel integrated GPU and Intel Arc A310. Capability and capacity results are
 host-specific and must be generated on each installation.
 
+After a successful rebuild, the configured state directory retains one
+`benchmark-latest.log`. Individual worker diagnostics are consolidated only
+after the capability cache is written; an unwritable diagnostic fails the
+rebuild rather than silently selecting software encoding.
+
 ## Quick start
 
 Make the scripts executable and build the local capability cache:

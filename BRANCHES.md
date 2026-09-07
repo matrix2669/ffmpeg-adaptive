@@ -45,7 +45,7 @@ authoritative for live refs, commits, pull requests, and checks.
 - Base/target: `main` / `main`
 - Purpose: integrate post-bootstrap changes for the next beta or stable
   version.
-- Current release candidate: `0.1.0-beta.2`, including the corrected common
+- Current release candidate: `0.1.0-beta.3`, including the corrected common
   hardware path, per-device runtime policy, bounded capacity discovery, and
   synchronized validation evidence.
 - Validation: complete repository suite, repeated Intel iGPU/Arc A310 and
@@ -125,3 +125,7 @@ authoritative for live refs, commits, pull requests, and checks.
   purge older per-worker diagnostics only then; focused regression coverage.
 - Out of scope: tag, release, plugin pin, registry publication, deployment, and
   changes to benchmark policy or capacity selection.
+- Validation: full repository validation and the explicit unwritable-diagnostic
+  regression passed before integration into `dev`.
+- Disposition: integrated into `dev`; `v0.1.0-beta.3` is the intended immutable
+  development tag.
