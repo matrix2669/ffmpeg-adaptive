@@ -603,3 +603,9 @@ Internal capacity measurements must keep their numeric result in the existing
 global result variable while suppressing probe stdout at the rebuild boundary.
 The wrapper's stdout is the media MPEG-TS boundary, so a successful multi-device
 rebuild must never prepend capacity numbers to a stream.
+
+The shared lock distinguishes caller roles: streaming admission treats a fresh
+`starting` placeholder as active maintenance and retains it, while benchmark
+acquisition continues to treat that placeholder as consumable and replaces it
+with its numeric PID/start-time owner. Numeric live owners remain blocking for
+both callers, and expired placeholders are removed.

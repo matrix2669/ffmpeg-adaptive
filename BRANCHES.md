@@ -147,8 +147,9 @@ authoritative for live refs, commits, pull requests, and checks.
 - Out of scope: benchmark policy thresholds, hardware selection policy, stable
   promotion, GitHub Release creation, unrelated plugins, and branch deletion.
 - Validation: `./scripts/validate.sh`, including full shell syntax, existing
-  behavior tests, repeated-log publication/retention, cache-write failure,
-  post-create diagnostic-write failure, unreadable-log publication, and early
-  capacity-worker cleanup injections.
+  behavior tests, caller-specific maintenance-lock admission, repeated-log
+  publication/retention, cache-write failure, post-create diagnostic-write
+  failure, unreadable-log publication, and early capacity-worker cleanup
+  injections.
 - Expected outcome: reviewed wrapper changes suitable for sequential
   `0.1.0-beta.4`; parent agent owns version/pin coordination and publication.

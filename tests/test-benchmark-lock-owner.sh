@@ -31,6 +31,30 @@ write_owned_lock
 ffsmart_lock_release
 [[ ! -e "$FFSMART_LOCK_FILE" ]]
 
+# A fresh maintenance placeholder blocks streaming admission but remains
+# consumable by benchmark acquisition, which replaces it with a PID owner.
+printf 'starting\n' > "$FFSMART_LOCK_FILE"
+ffsmart_lock_is_maintenance
+[[ -f "$FFSMART_LOCK_FILE" ]]
+ffsmart_lock_acquire
+read -r acquired_owner acquired_start < "$FFSMART_LOCK_FILE"
+[[ "$acquired_owner" == "$$" ]]
+[[ -n "$acquired_start" || -z "$FFSMART_LOCK_OWNER_START" ]]
+ffsmart_lock_release
+
+# A live numeric owner remains protected by both admission checks.
+write_owned_lock
+ffsmart_lock_is_live
+ffsmart_lock_is_maintenance
+[[ -f "$FFSMART_LOCK_FILE" ]]
+ffsmart_lock_release
+
+# An expired placeholder is cleaned up and no longer blocks acquisition.
+printf 'starting\n' > "$FFSMART_LOCK_FILE"
+touch -d '2 minutes ago' "$FFSMART_LOCK_FILE" 2>/dev/null || touch -t 200001010000 "$FFSMART_LOCK_FILE"
+! ffsmart_lock_is_maintenance
+[[ ! -e "$FFSMART_LOCK_FILE" ]]
+
 if [[ -n "$FFSMART_LOCK_OWNER_START" ]]; then
     printf '%s %s\n' "$$" "$((FFSMART_LOCK_OWNER_START + 1))" > "$FFSMART_LOCK_FILE"
     ! ffsmart_lock_is_live

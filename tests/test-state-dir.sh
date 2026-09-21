@@ -41,6 +41,22 @@ PATH="$fake_bin:$PATH" FFMPEG_SMART_STATE_DIR="$state_dir" test_write_valid_cach
 PATH="$fake_bin:$PATH" FFMPEG_SMART_STATE_DIR="$state_dir" "$wrapper" --cache-status > "$test_dir/valid-status"
 grep -Fxq 'FFMPEG_SMART_CACHE_STATUS=valid' "$test_dir/valid-status"
 
+# A fresh maintenance placeholder blocks a valid-cache stream through the
+# degraded proxy and remains intact for the benchmark owner to consume.
+printf 'starting\n' > "$state_dir/.benchmark.lock"
+set +e
+PATH="$fake_bin:$PATH" FFMPEG_SMART_STATE_DIR="$state_dir" FFMPEG_SMART_REQUIRE_CACHE=true \
+FFMPEG_SMART_CACHE_FALLBACK=proxy FFMPEG_SMART_TEST_ARGS="$test_dir/maintenance.args" \
+FFMPEG_SMART_TEST_OUTPUT=maintenance-output "$wrapper" -i input.ts > "$test_dir/maintenance" 2>&1
+status=$?
+set -e
+[[ "$status" -eq 0 ]] || { cat "$test_dir/maintenance" >&2; exit 1; }
+grep -Fq 'WARNING [degraded-proxy]' "$test_dir/maintenance"
+grep -Fxq -- '-c' "$test_dir/maintenance.args"
+grep -Fxq -- 'copy' "$test_dir/maintenance.args"
+[[ "$(<"$state_dir/.benchmark.lock")" == starting ]]
+rm -f -- "$state_dir/.benchmark.lock"
+
 (
     set +u
     source "$repo_dir/lib/ffsmart-common.sh"
