@@ -20,6 +20,10 @@ FFSMART_H264_SAMPLE="$test_dir/h264.mkv"
 FFSMART_HEVC10_SAMPLE="$test_dir/hevc10.mkv"
 printf 'sample\n' > "$FFSMART_H264_SAMPLE"
 printf 'sample\n' > "$FFSMART_HEVC10_SAMPLE"
+FFSMART_DRI_DEVICE=""
+FFSMART_QSV_DEVICE=""
+FFSMART_VAAPI_DEVICE=""
+FFSMART_CAPACITY_POLICY="test"
 
 ffsmart_lock_acquire() { :; }
 ffsmart_ensure_benchmark_samples() { :; }
@@ -313,6 +317,23 @@ fi
 [[ "$status" == 73 ]]
 [[ "$alignment_called" == true ]]
 
+# A successful two-device rebuild must keep capacity probe output internal;
+# benchmark startup output is also the media MPEG-TS stdout boundary.
+FFSMART_BENCHMARK_RUN_DIR=""
+ffsmart_refresh_hardware_inventory() {
+    FFSMART_RENDER_NODES=(/dev/dri/renderD128 /dev/dri/renderD129)
+    ffsmart_device_set signature /dev/dri/renderD128 0x8086:test-a
+    ffsmart_device_set signature /dev/dri/renderD129 0x8086:test-b
+}
+ffsmart_run_benchmark_candidate() { FFSMART_BENCHMARK_SPEED=2; return 0; }
+ffsmart_benchmark_device_path() { return 0; }
+ffsmart_probe_10bit() { return 1; }
+ffsmart_measure_capacity() { FFSMART_CAPACITY_RESULT=11; printf '11'; return 0; }
+ffsmart_cache_write() { return 0; }
+FFSMART_BENCHMARK_LOG_FAILURE=false
+rebuild_output="$(ffsmart_rebuild_cache true)"
+[[ -z "$rebuild_output" ]]
+
 # The rebuild boundary must preserve prior cache/summary when capacity reports
 # that sticky diagnostic failure, before cache publication is attempted.
 FFSMART_BENCHMARK_RUN_DIR=""
@@ -326,6 +347,7 @@ ffsmart_refresh_hardware_inventory() {
 ffsmart_benchmark_log_path() { printf '%s/%s-%s.log' "$FFSMART_BENCHMARK_RUN_DIR" "$1" "$RANDOM"; }
 ffsmart_benchmark_candidate() { FFSMART_BENCHMARK_SPEED=2; printf '2'; }
 ffsmart_probe_10bit() { return 1; }
+ffsmart_measure_capacity() { return 73; }
 ffsmart_capacity_level_stable() { return 73; }
 FFSMART_BENCHMARK_LOG_FAILURE=false
 if ffsmart_rebuild_cache true; then

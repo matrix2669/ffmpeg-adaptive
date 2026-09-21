@@ -598,3 +598,8 @@ whether the current cache validates. No benchmark thresholds or hardware
 selection policy change. Capacity cleanup gives the owning worker a two-second
 TERM grace before child KILL, with a three-second outer worker grace; review
 these bounds if orchestration or child ownership changes.
+
+Internal capacity measurements must keep their numeric result in the existing
+global result variable while suppressing probe stdout at the rebuild boundary.
+The wrapper's stdout is the media MPEG-TS boundary, so a successful multi-device
+rebuild must never prepend capacity numbers to a stream.
