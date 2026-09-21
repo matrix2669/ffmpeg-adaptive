@@ -21,6 +21,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `feature/v0.1.0-beta.1-release` | short-lived | integrated | `dev@4a88851` | `dev` | Prepare the first immutable standalone beta tag for downstream plugin synchronization. |
 | `fix/benchmark-runtime-fidelity` | short-lived | integrated | `dev@80d648b` | `dev` | Make capacity measurements and per-device runtime policy use equivalent hardware commands. |
 | `fix/benchmark-log-integrity` | short-lived | active | `dev@4df6c12` | `dev` | Fail unsafe benchmark diagnostics and retain only the latest successful consolidated log. |
+| `fix/benchmark-integrity-beta5` | short-lived | active | `dev@4319656` | `dev` | Extend ADR-014 with checked diagnostic I/O, transactional retention, unique logs, and bounded worker cleanup for the next wrapper beta. |
 
 ## Branch records
 
@@ -129,3 +130,23 @@ authoritative for live refs, commits, pull requests, and checks.
   regression passed before integration into `dev`.
 - Disposition: integrated into `dev`; `v0.1.0-beta.3` is the intended immutable
   development tag.
+
+### `fix/benchmark-integrity-beta5`
+
+- Type: short-lived fix
+- Status: active; isolated review branch, not integrated or published
+- Created: 2026-09-21
+- Base/target: `dev@4319656239b48c3cc19e9d0b6d5bfe92c9eacffe` / `dev`
+- Scope: propagate diagnostic status 73 through every benchmark boundary; check
+  post-creation diagnostic writes and reads; preserve prior cache and summary on
+  prepublication failures; publish before purge; retain distinct logs in a
+  private contained run directory; and clean workers with bounded TERM/KILL.
+- Out of scope: benchmark policy thresholds, hardware selection policy, source
+  tag/release, plugin synchronization, registry publication, deployment, and
+  branch push or integration.
+- Validation: `./scripts/validate.sh`, including full shell syntax, existing
+  behavior tests, repeated-log publication/retention, cache-write failure,
+  post-create diagnostic-write failure, unreadable-log publication, and early
+  capacity-worker cleanup injections.
+- Expected outcome: reviewed wrapper changes suitable for sequential
+  `0.1.0-beta.4`; parent agent owns version/pin coordination and publication.

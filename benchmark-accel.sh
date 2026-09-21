@@ -38,9 +38,12 @@ for node in "${nodes[@]}"; do
             for low_power in 0 1; do
                 [[ "$accel" == software && "$low_power" == 1 ]] && continue
                 for ((run=1; run<=runs; run++)); do
-                    if speed="$(ffsmart_benchmark_candidate "$node" "$accel" "$codec" "$low_power" "$duration")"; then
+                    if ffsmart_run_benchmark_candidate "$node" "$accel" "$codec" "$low_power" "$duration"; then
+                        speed="$FFSMART_BENCHMARK_SPEED"
                         status=pass
                     else
+                        candidate_status=$?
+                        [[ "$candidate_status" -eq 73 ]] && exit 73
                         speed=0; status=fail
                     fi
                     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \

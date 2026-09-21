@@ -29,6 +29,7 @@ test_cases=(
     test-adaptive-probing.sh
     test-policy-matrix.sh
     test-hardware-command.sh
+    test-benchmark-integrity.sh
     test-pipe-replay.sh
     test-cli-contract.sh
 )

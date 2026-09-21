@@ -564,3 +564,26 @@ ordinary unsupported path, then successfully saved a software-only cache.
 A state-directory ownership error is visible and repairable rather than silently
 causing CPU encoding. The retained latest log is diagnostic-only and not part of
 cache validity or runtime selection.
+
+## Beta-4 integrity clarifications
+
+The status-73 boundary applies through candidate tests, 10-bit probes, capacity
+levels, and the cache rebuild caller. Unsupported codecs or unavailable paths
+remain ordinary rejection (status 1); inability to create, read, or persist a
+diagnostic is never converted into that rejection. Benchmark stderr is persisted
+through a checked writer process so failures after initial file creation are
+also status 73.
+
+Cache replacement is checked before summary publication. A failed cache write
+leaves the prior usable cache and prior summary/evidence untouched. Summary
+publication writes and validates a private temporary file, atomically moves it
+into the regular `benchmark-latest.log` destination, and only then removes old
+worker logs and failed-run directories. Every generated log receives a unique
+per-run suffix, and cleanup refuses paths outside the state directory. Capacity
+workers receive TERM followed by bounded KILL cleanup when setup fails, so an
+early diagnostic failure cannot orphan workers or watchdogs.
+
+These clarifications preserve ADR-014's ownership and retention decision while
+making its transaction and failure boundaries explicit. Revisit if the cache
+format becomes transactional across cache and diagnostics or if benchmark
+execution moves to a managed supervisor.
