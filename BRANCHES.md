@@ -20,8 +20,8 @@ authoritative for live refs, commits, pull requests, and checks.
 | `feature/standalone-parity-validation` | short-lived | integrated | `dev@3256799` | `dev` | Record the repeat old/rewrite/standalone comparison against the standalone repository. |
 | `feature/v0.1.0-beta.1-release` | short-lived | integrated | `dev@4a88851` | `dev` | Prepare the first immutable standalone beta tag for downstream plugin synchronization. |
 | `fix/benchmark-runtime-fidelity` | short-lived | integrated | `dev@80d648b` | `dev` | Make capacity measurements and per-device runtime policy use equivalent hardware commands. |
-| `fix/benchmark-log-integrity` | short-lived | active | `dev@4df6c12` | `dev` | Fail unsafe benchmark diagnostics and retain only the latest successful consolidated log. |
-| `fix/benchmark-integrity-beta5` | short-lived | active | `dev@4319656` | `dev` | Extend ADR-014 with checked diagnostic I/O, transactional retention, unique logs, and bounded worker cleanup for the next wrapper beta. |
+| `fix/benchmark-log-integrity` | short-lived | integrated | `dev@4df6c12` | `dev` | Fail unsafe benchmark diagnostics and retain only the latest successful consolidated log. |
+| `fix/benchmark-integrity-beta5` | short-lived | active; release and validation complete | `dev@4319656` | `dev` | Extend ADR-014 with checked diagnostic I/O, transactional retention, unique logs, bounded worker cleanup, and deterministic CI validation for wrapper beta.4. |
 
 ## Branch records
 
@@ -46,12 +46,15 @@ authoritative for live refs, commits, pull requests, and checks.
 - Base/target: `main` / `main`
 - Purpose: integrate post-bootstrap changes for the next beta or stable
   version.
-- Last published beta: `0.1.0-beta.3`. The isolated next candidate is
-  `0.1.0-beta.4`, completing diagnostic integrity and worker cleanup; final
-  independent review and managed hardware validation remain required.
+- Last published beta: `0.1.0-beta.4` at immutable source commit
+  `913a958fd5f9edc231c49a70539a09f611fdcc5a`. The matching plugin beta.5 is
+  published to the development registry; native hardware, pipe, and final
+  zero-process validation completed on 2026-09-21.
 - Validation: complete repository suite, repeated Intel iGPU/Arc A310 and
   Dispatcharr 1080p/1080i/720p comparison, standards reconciliation, fresh
-  source-overlap audit, and inspected runtime archive.
+  source-overlap audit, inspected runtime archive, and beta.4 CI/archive
+  evidence; managed benchmark, bounded pipe, and final process validation are
+  complete as recorded in `docs/beta4-validation-2026-09-21.md`.
 
 ### `feature/standalone-parity-validation`
 
@@ -118,7 +121,7 @@ authoritative for live refs, commits, pull requests, and checks.
 ### `fix/benchmark-log-integrity`
 
 - Type: short-lived fix
-- Status: active
+- Status: integrated
 - Created: 2026-09-07
 - Base/target: `dev@4df6c12` / `dev`
 - Scope: fail cache rebuilds when benchmark diagnostics cannot be written; retain
@@ -134,7 +137,7 @@ authoritative for live refs, commits, pull requests, and checks.
 ### `fix/benchmark-integrity-beta5`
 
 - Type: short-lived fix
-- Status: active; isolated review branch, not integrated or published
+- Status: active; release and managed validation complete; final review closure
 - Created: 2026-09-21
 - Base/target: `dev@4319656239b48c3cc19e9d0b6d5bfe92c9eacffe` / `dev`
 - Scope: propagate diagnostic status 73 through every benchmark boundary; check
@@ -143,16 +146,18 @@ authoritative for live refs, commits, pull requests, and checks.
   private contained run directory; clean workers with bounded TERM/KILL; and
   replace the failing runner-provided ShellCheck 0.9 CI gate with a pinned
   official ShellCheck 0.11.0 checker.
-- Authorized delivery after review: wrapper `0.1.0-beta.4` on `dev`, immutable
-  tag, exact downstream plugin pin for `0.2.1-beta.5`, development registry
-  publication, and managed update/benchmark only while no viewers are active.
+- Delivery completed: wrapper `0.1.0-beta.4` on `dev`, immutable tag, exact
+  downstream plugin pin for `0.2.1-beta.5`, and development registry
+  publication. Managed benchmark and bounded pipe validation completed with no
+  viewers active; no profile creation or live-provider fetch was performed.
 - Out of scope: benchmark policy thresholds, hardware selection policy, stable
   promotion, GitHub Release creation, unrelated plugins, and branch deletion.
 - Validation: `./scripts/validate.sh`, including full shell syntax, existing
   behavior tests, caller-specific maintenance-lock admission, repeated-log
   publication/retention, cache-write failure, post-create diagnostic-write
   failure, unreadable-log publication, and early capacity-worker cleanup
-  injections; the pending CI workflow separately records its workflow SHA and
-  validates unchanged beta.4 source SHA `913a958`.
-- Expected outcome: reviewed wrapper changes suitable for sequential
-  `0.1.0-beta.4`; parent agent owns version/pin coordination and publication.
+  injections; CI run `35633440274` uses workflow SHA `10a6e4b` and separately
+  validates unchanged beta.4 source SHA `913a958`; wrapper/tag CI,
+  plugin/tag/dev CI, and registry CI are recorded in the validation document.
+- Expected outcome: documentation closure with completed bounded hardware and
+  pipe evidence; no new runtime or release artifact is authorized.

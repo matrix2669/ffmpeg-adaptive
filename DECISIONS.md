@@ -616,7 +616,7 @@ both callers, and expired placeholders are removed.
 
 ## Status
 
-Accepted for the pending CI-only replacement
+Accepted; CI replacement passed
 
 ## Date
 
@@ -641,7 +641,11 @@ auditable while the workflow definition changes.
 
 ## Consequences
 
-The CI checker is deterministic and checksum-pinned, and a workflow follow-up
-cannot be mistaken for a runtime or release-source change. The CI replacement
-remains pending until its own workflow commit passes review; no runtime,
-version, tag, or publication state changes here.
+The CI checker is deterministic and checksum-pinned, and CI run
+`35633440274` passed workflow definition `10a6e4b8e16b66857df3b03a7bb6d0bb88fc9929`
+against unchanged source `913a958fd5f9edc231c49a70539a09f611fdcc5a`. The
+managed beta.5 benchmark subsequently completed at
+`2026-09-21T17:51:16.719376+00:00` with return code 0, valid cache, no lock,
+and reviewed cleanup. Native capacity and bounded pipe evidence are recorded
+separately; no live-provider channel was fetched and no actual profile was
+created.

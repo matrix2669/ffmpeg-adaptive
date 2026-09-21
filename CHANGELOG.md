@@ -6,12 +6,31 @@ All notable user-visible changes are documented here.
 
 ### CI maintenance
 
-- Prepared a replacement for the runner-provided ShellCheck 0.9 gate after GitHub runs
-  `35631984969` and `35631983498` reported SC2218 false positives. The pending
-  workflow replacement downloads the official ShellCheck 0.11.0 Linux asset,
-  verifies its pinned SHA-256, prints its version, validates the current
-  workflow checkout, and separately validates unchanged beta.4 source commit
-  `913a958fd5f9edc231c49a70539a09f611fdcc5a`.
+- CI replacement run `35633440274` passed with workflow definition
+  `10a6e4b8e16b66857df3b03a7bb6d0bb88fc9929`, validating unchanged beta.4
+  source commit `913a958fd5f9edc231c49a70539a09f611fdcc5a`. Historical failed
+  runs `35631984969` and `35631983498` remain recorded as ShellCheck 0.9
+  SC2218 false-positive failures, not release evidence.
+
+### Validation status
+
+- The plugin tag CI passed as `35631993818`; the development plugin CI passed
+  as `35631991578`; and registry CI `35633913052` validated the registry
+  checkout. Published root and detail endpoints were independently verified.
+  The managed beta.5 installation preserved settings and
+  offered no update while no viewers were active.
+- Native benchmark validation completed at `2026-09-21T17:51:16.719376+00:00`
+  with return code 0, a valid cache, no lock, and no retained root worker logs
+  or run directories. The primary `renderD129` measured capacity 19 at 14x;
+  secondary `renderD128` measured capacity 14 at 11.6x, with VAAPI/HEVC Main10
+  decode and encode support.
+- A bounded real-hardware launcher test sent a previously generated four-second
+  H.264 fixture through `pipe:0` to HEVC VAAPI 720p output for 4.025 seconds;
+  full decode with `-xerror` completed without errors and measured 120 frames. No live-provider
+  channel was fetched and no actual profile was created.
+- The final `17:52:25` snapshot had zero viewers, zero input/output transcodes,
+  no FFmpeg/FFprobe processes, the beta.5 runtime and manifest pinned to
+  `913a958`, and an unchanged settings digest.
 
 ## [0.1.0-beta.4] - 2026-09-21
 

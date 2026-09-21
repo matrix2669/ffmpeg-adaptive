@@ -166,6 +166,13 @@ are recorded in [docs/validation-2026-08-29.md](docs/validation-2026-08-29.md).
 The repeat comparison against the standalone repository is recorded in
 [docs/standalone-parity-validation-2026-08-29.md](docs/standalone-parity-validation-2026-08-29.md).
 
+The beta.4 release-source validation is recorded in
+[docs/beta4-validation-2026-09-21.md](docs/beta4-validation-2026-09-21.md).
+That record separates the immutable wrapper source at `913a958` from the CI
+workflow definition at `10a6e4b`, includes the inspected archive checksum and
+provenance audit, and records the completed native benchmark, bounded real-
+hardware pipe test, and final zero-viewer/process snapshot.
+
 ## License
 
 Copyright 2026 Jarred Saperton. Licensed under the [MIT License](LICENSE).
