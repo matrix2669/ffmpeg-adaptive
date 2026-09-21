@@ -140,7 +140,9 @@ authoritative for live refs, commits, pull requests, and checks.
 - Scope: propagate diagnostic status 73 through every benchmark boundary; check
   post-creation diagnostic writes and reads; preserve prior cache and summary on
   prepublication failures; publish before purge; retain distinct logs in a
-  private contained run directory; and clean workers with bounded TERM/KILL.
+  private contained run directory; clean workers with bounded TERM/KILL; and
+  replace the failing runner-provided ShellCheck 0.9 CI gate with a pinned
+  official ShellCheck 0.11.0 checker.
 - Authorized delivery after review: wrapper `0.1.0-beta.4` on `dev`, immutable
   tag, exact downstream plugin pin for `0.2.1-beta.5`, development registry
   publication, and managed update/benchmark only while no viewers are active.
@@ -150,6 +152,7 @@ authoritative for live refs, commits, pull requests, and checks.
   behavior tests, caller-specific maintenance-lock admission, repeated-log
   publication/retention, cache-write failure, post-create diagnostic-write
   failure, unreadable-log publication, and early capacity-worker cleanup
-  injections.
+  injections; the pending CI workflow separately records its workflow SHA and
+  validates unchanged beta.4 source SHA `913a958`.
 - Expected outcome: reviewed wrapper changes suitable for sequential
   `0.1.0-beta.4`; parent agent owns version/pin coordination and publication.

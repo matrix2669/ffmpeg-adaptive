@@ -12,10 +12,60 @@ on:
 permissions:
   contents: read
 
+env:
+  SHELLCHECK_VERSION: "0.11.0"
+  SHELLCHECK_ARCHIVE_URL: "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz"
+  SHELLCHECK_ARCHIVE_SHA256: "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198"
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Install verified ShellCheck ${{ env.SHELLCHECK_VERSION }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/shellcheck-v${SHELLCHECK_VERSION}.tar.xz"
+          install_dir="$RUNNER_TEMP/shellcheck-v${SHELLCHECK_VERSION}"
+          curl --fail --location --silent --show-error --retry 3 \
+            --output "$archive" "$SHELLCHECK_ARCHIVE_URL"
+          printf '%s  %s\n' "$SHELLCHECK_ARCHIVE_SHA256" "$archive" | sha256sum --check --status -
+          rm -rf -- "$install_dir"
+          mkdir -p -- "$install_dir"
+          tar -xJf "$archive" --strip-components=1 -C "$install_dir"
+          test -x "$install_dir/shellcheck"
+          "$install_dir/shellcheck" --version
+          echo "$install_dir" >> "$GITHUB_PATH"
       - name: Validate shell, behavior, and release metadata
         run: ./scripts/validate.sh
+      - name: Validate immutable beta.4 source separately
+        shell: bash
+        env:
+          BETA4_TAG: "v0.1.0-beta.4"
+          BETA4_SHA: "913a958fd5f9edc231c49a70539a09f611fdcc5a"
+        run: |
+          set -euo pipefail
+          printf 'workflow_sha=%s\n' "$GITHUB_SHA"
+          printf 'tested_source_sha=%s\n' "$BETA4_SHA"
+          git fetch --no-tags origin "refs/tags/$BETA4_TAG:refs/tags/$BETA4_TAG"
+          test "$(git rev-parse "$BETA4_TAG^{commit}")" = "$BETA4_SHA"
+          exact_dir="$RUNNER_TEMP/ffmpeg-adaptive-beta4"
+          git worktree add --detach "$exact_dir" "$BETA4_SHA"
+          cleanup() { git worktree remove --force "$exact_dir"; }
+          trap cleanup EXIT
+          (
+            cd "$exact_dir"
+            test "$(git rev-parse HEAD)" = "$BETA4_SHA"
+            ./scripts/validate.sh
+            git diff --exit-code --no-ext-diff
+            git diff --cached --exit-code --no-ext-diff
+            test -z "$(git status --porcelain --untracked-files=all)"
+          )
+      - name: Verify tracked source unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code --no-ext-diff
+          git diff --cached --exit-code --no-ext-diff
+          test -z "$(git status --porcelain --untracked-files=all)"

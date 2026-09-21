@@ -609,3 +609,39 @@ The shared lock distinguishes caller roles: streaming admission treats a fresh
 acquisition continues to treat that placeholder as consumable and replaces it
 with its numeric PID/start-time owner. Numeric live owners remain blocking for
 both callers, and expired placeholders are removed.
+
+---
+
+# ADR-015: Pin the CI shell checker and separate release-source validation
+
+## Status
+
+Accepted for the pending CI-only replacement
+
+## Date
+
+2026-09-21
+
+## Decision
+
+CI installs the official ShellCheck 0.11.0 Linux x86_64 release asset from its
+fixed GitHub release URL, verifies SHA-256
+`8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198`, prints the
+tool version, and runs the complete validation suite. The workflow reports its
+workflow commit separately from the immutable beta.4 source commit
+`913a958fd5f9edc231c49a70539a09f611fdcc5a`, validates both, and confirms the
+tracked checkout remains unchanged.
+
+## Reason
+
+GitHub runs `35631984969` and `35631983498` failed because runner-provided
+ShellCheck 0.9 emitted SC2218 false positives. ShellCheck 0.11.0 contains the
+upstream accuracy fix. The exact beta.4 source must remain independently
+auditable while the workflow definition changes.
+
+## Consequences
+
+The CI checker is deterministic and checksum-pinned, and a workflow follow-up
+cannot be mistaken for a runtime or release-source change. The CI replacement
+remains pending until its own workflow commit passes review; no runtime,
+version, tag, or publication state changes here.

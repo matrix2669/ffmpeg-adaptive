@@ -27,6 +27,18 @@ No tag or GitHub Release is created by repository bootstrap.
 7. Build an installable archive from the exact release commit, excluding Git
    history and runtime state. Inspect its contents and calculate SHA-256.
 
+## CI checker follow-up
+
+GitHub runs `35631984969` and `35631983498` are failed historical checks from
+the runner-provided ShellCheck 0.9 and are not release evidence. The pending
+workflow replacement uses the official ShellCheck 0.11.0 Linux x86_64 release
+asset with checksum
+`8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198`, prints the
+tool version, validates the workflow checkout, and separately validates the
+unchanged beta.4 source at
+`913a958fd5f9edc231c49a70539a09f611fdcc5a`. The workflow commit and tested
+release-source commit must be recorded separately before this gate is closed.
+
 ## Beta release
 
 After the gates pass, version and tag the exact tested `dev` commit. A beta may

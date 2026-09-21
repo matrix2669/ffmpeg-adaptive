@@ -18,7 +18,7 @@ backends, and device access selected by the local capability scan.
 
 | Dependency | Required contract | Status | Production conclusion |
 |---|---|---|---|
-| Bash | Arrays, process substitution, `BASH_SOURCE`, and Bash 3-compatible syntax | Covered by `bash -n`, ShellCheck, and behavior tests | Compatible with Bash 3.2+ |
+| Bash | Arrays, process substitution, `BASH_SOURCE`, and Bash 3-compatible syntax | Covered by `bash -n`, pinned ShellCheck 0.11.0, and behavior tests | Compatible with Bash 3.2+ |
 | FFmpeg | MPEG-TS muxing, selected encoders/decoders, filter graph, hardware-device initialization | Probed at runtime; all 16 bounded Intel QSV/VAAPI candidate combinations revalidated on FFmpeg 8.1.2 with hardware decoding | Conditional on local capability scan |
 | FFprobe | Machine-readable stream metadata for video, audio, field order, color, and rates | Adaptive tiers tested against live and bounded inputs | Compatible on tested build |
 | Linux DRM and `/proc` | Render-node identity and visible FFmpeg workload markers | Tested in Docker/LXC with two Intel devices | Optional; software fallback remains available |
@@ -41,3 +41,12 @@ Before changing the minimum runtime or claiming compatibility with a new
 FFmpeg release, rerun the full behavior suite and representative software,
 hardware, container, live-stream, and concurrency tests. Record the exact
 version and environment here.
+
+### 2026-09-21 CI checker follow-up
+
+GitHub runs `35631984969` and `35631983498` used the runner's ShellCheck 0.9
+and failed on SC2218 reports that the official ShellCheck 0.11.0 release fixes.
+The pending workflow replacement pins the official Linux x86_64 archive URL and
+SHA-256 `8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198`,
+prints the installed version, and validates both the workflow checkout and the
+unchanged beta.4 source at `913a958fd5f9edc231c49a70539a09f611fdcc5a`.

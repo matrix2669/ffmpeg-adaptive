@@ -2,6 +2,17 @@
 
 All notable user-visible changes are documented here.
 
+## Unreleased
+
+### CI maintenance
+
+- Prepared a replacement for the runner-provided ShellCheck 0.9 gate after GitHub runs
+  `35631984969` and `35631983498` reported SC2218 false positives. The pending
+  workflow replacement downloads the official ShellCheck 0.11.0 Linux asset,
+  verifies its pinned SHA-256, prints its version, validates the current
+  workflow checkout, and separately validates unchanged beta.4 source commit
+  `913a958fd5f9edc231c49a70539a09f611fdcc5a`.
+
 ## [0.1.0-beta.4] - 2026-09-21
 
 ### Fixed
