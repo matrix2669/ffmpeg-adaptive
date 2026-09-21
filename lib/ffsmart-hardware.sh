@@ -295,7 +295,7 @@ ffsmart_run_benchmark_command_worker() {
     writer_pid="$!"
     "${FFSMART_BENCH_CMD[@]}" > /dev/null 2> "$fifo" &
     ffmpeg_pid="$!"
-    trap 'kill -TERM "$ffmpeg_pid" "$writer_pid" 2>/dev/null || true; wait "$ffmpeg_pid" 2>/dev/null || true; wait "$writer_pid" 2>/dev/null || true; exit 143' TERM INT
+    trap 'ffsmart_benchmark_command_signal_cleanup "$ffmpeg_pid" "$writer_pid"' TERM INT
     if wait "$writer_pid"; then writer_status=0; else writer_status=$?; fi
     if (( writer_status != 0 )); then
         kill -TERM "$ffmpeg_pid" 2>/dev/null || true
@@ -312,6 +312,17 @@ ffsmart_run_benchmark_command_worker() {
     rm -f -- "$fifo" || true
     trap - TERM INT
     return "$ffmpeg_status"
+}
+
+ffsmart_benchmark_command_signal_cleanup() {
+    local ffmpeg_pid="$1" writer_pid="$2"
+    trap - TERM INT
+    kill -TERM "$ffmpeg_pid" "$writer_pid" 2>/dev/null || true
+    sleep 2
+    kill -KILL "$ffmpeg_pid" "$writer_pid" 2>/dev/null || true
+    wait "$ffmpeg_pid" 2>/dev/null || true
+    wait "$writer_pid" 2>/dev/null || true
+    exit 143
 }
 
 ffsmart_run_benchmark_command() {
@@ -417,7 +428,7 @@ ffsmart_stop_benchmark_workers() {
     local pid
     (($#)) || return 0
     for pid in "$@"; do kill -TERM "$pid" 2>/dev/null || true; done
-    sleep 1
+    sleep 3
     for pid in "$@"; do kill -KILL "$pid" 2>/dev/null || true; done
     for pid in "$@"; do wait "$pid" 2>/dev/null || true; done
 }
@@ -446,35 +457,36 @@ ffsmart_capacity_level_stable() {
             ffsmart_stop_benchmark_workers "${pids[@]}"
             return "$status"
         fi
-        ffsmart_run_benchmark_command "$log" &
+        ffsmart_run_benchmark_command_worker "$log" &
         pids+=("$!")
         logs+=("$log")
     done
     (
         watchdog_sleep=""
-        trap '[[ -z "$watchdog_sleep" ]] || kill "$watchdog_sleep" 2>/dev/null || true; exit 0' TERM INT
+        trap 'if [[ -n "$watchdog_sleep" ]]; then kill "$watchdog_sleep" 2>/dev/null || true; wait "$watchdog_sleep" 2>/dev/null || true; fi; exit 0' TERM INT
         sleep "$wall_timeout" &
         watchdog_sleep="$!"
         wait "$watchdog_sleep" || exit 0
-        trap - TERM INT
         printf 'timeout\n' > "$timeout_marker"
         ffsmart_log "Capacity probe deadline node=$node level=$level wall=${wall_timeout}s"
         for index in "${pids[@]}"; do kill -TERM "$index" 2>/dev/null || true; done
-        sleep 2
+        sleep 3 &
+        watchdog_sleep="$!"
+        wait "$watchdog_sleep" || exit 0
         for index in "${pids[@]}"; do kill -KILL "$index" 2>/dev/null || true; done
     ) &
     watchdog_pid="$!"
     for index in "${!pids[@]}"; do
         if wait "${pids[$index]}"; then :; else
             local worker_status=$?
-            if [[ "$worker_status" -eq 73 ]]; then status=73; else status=1; fi
+            if [[ "$worker_status" -eq 73 ]]; then status=73; elif [[ "$status" -ne 73 ]]; then status=1; fi
         fi
         if speed="$(ffsmart_extract_speed "${logs[$index]}")"; then :; else
             local extract_status=$?
-            if [[ "$extract_status" -eq 73 ]]; then status=73; else status=1; fi
+            if [[ "$extract_status" -eq 73 ]]; then status=73; elif [[ "$status" -ne 73 ]]; then status=1; fi
             continue
         fi
-        if ! awk -v s="$speed" -v m="$min_speed" 'BEGIN { exit !(s >= m) }'; then
+        if ! awk -v s="$speed" -v m="$min_speed" 'BEGIN { exit !(s >= m) }' && [[ "$status" -ne 73 ]]; then
             status=1
         fi
     done
@@ -483,7 +495,7 @@ ffsmart_capacity_level_stable() {
     fi
     wait "$watchdog_pid" 2>/dev/null || true
     if [[ -e "$timeout_marker" ]]; then
-        status=1
+        [[ "$status" -eq 73 ]] || status=1
         rm -f -- "$timeout_marker"
     fi
     return "$status"
@@ -679,6 +691,8 @@ ffsmart_rebuild_cache() {
                     ffsmart_device_set capacity "$node" ""
                     ffsmart_log "Aligned device node=$node accel=$best_accel codec=$best_codec low_power=$FFSMART_PATH_LOW_POWER speed=${FFSMART_PATH_SPEED}x"
                 else
+                    local alignment_status=$?
+                    [[ "$alignment_status" -eq 73 ]] && return 73
                     ffsmart_log "Device node=$node has no working common path accel=$best_accel codec=$best_codec; retaining its independent best path"
                 fi
             fi

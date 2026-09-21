@@ -27,7 +27,7 @@ source and overlap audit.
 - Bash 3.2 or newer.
 - `ffmpeg` and `ffprobe` available on `PATH`.
 - Standard Unix tools used by the scripts, including `awk`, `grep`, `sed`,
-  `sort`, `stat`, and `mktemp`.
+  `sort`, `stat`, `mktemp`, `mkfifo`, and `cat`.
 - The relevant GPU devices and FFmpeg encoders/decoders when hardware
   acceleration is desired.
 
@@ -37,8 +37,13 @@ host-specific and must be generated on each installation.
 
 After a successful rebuild, the configured state directory retains one
 `benchmark-latest.log`. Individual worker diagnostics are consolidated only
-after the capability cache is written; an unwritable diagnostic fails the
-rebuild rather than silently selecting software encoding.
+after the capability cache is written; diagnostic creation, write, or read
+failures return status 73 rather than silently selecting software encoding.
+Each trial has a distinct log in a private run directory. Older worker logs and
+failed-run directories are purged only after the new summary is published.
+Failures before publication preserve diagnostic evidence for troubleshooting.
+A failed cache write preserves the old cache; a later summary or cleanup failure
+still fails the rebuild even if the new cache has already been saved.
 
 ## Quick start
 

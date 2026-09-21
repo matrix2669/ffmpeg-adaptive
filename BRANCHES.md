@@ -46,9 +46,9 @@ authoritative for live refs, commits, pull requests, and checks.
 - Base/target: `main` / `main`
 - Purpose: integrate post-bootstrap changes for the next beta or stable
   version.
-- Current release candidate: `0.1.0-beta.3`, including the corrected common
-  hardware path, per-device runtime policy, bounded capacity discovery, and
-  synchronized validation evidence.
+- Last published beta: `0.1.0-beta.3`. The isolated next candidate is
+  `0.1.0-beta.4`, completing diagnostic integrity and worker cleanup; final
+  independent review and managed hardware validation remain required.
 - Validation: complete repository suite, repeated Intel iGPU/Arc A310 and
   Dispatcharr 1080p/1080i/720p comparison, standards reconciliation, fresh
   source-overlap audit, and inspected runtime archive.
@@ -141,9 +141,11 @@ authoritative for live refs, commits, pull requests, and checks.
   post-creation diagnostic writes and reads; preserve prior cache and summary on
   prepublication failures; publish before purge; retain distinct logs in a
   private contained run directory; and clean workers with bounded TERM/KILL.
-- Out of scope: benchmark policy thresholds, hardware selection policy, source
-  tag/release, plugin synchronization, registry publication, deployment, and
-  branch push or integration.
+- Authorized delivery after review: wrapper `0.1.0-beta.4` on `dev`, immutable
+  tag, exact downstream plugin pin for `0.2.1-beta.5`, development registry
+  publication, and managed update/benchmark only while no viewers are active.
+- Out of scope: benchmark policy thresholds, hardware selection policy, stable
+  promotion, GitHub Release creation, unrelated plugins, and branch deletion.
 - Validation: `./scripts/validate.sh`, including full shell syntax, existing
   behavior tests, repeated-log publication/retention, cache-write failure,
   post-create diagnostic-write failure, unreadable-log publication, and early

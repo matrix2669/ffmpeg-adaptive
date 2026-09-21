@@ -9,6 +9,7 @@ trap test_cleanup EXIT
 source "$repo_dir/lib/ffsmart-common.sh"
 source "$repo_dir/lib/ffsmart-cache.sh"
 source "$repo_dir/lib/ffsmart-hardware.sh"
+VERSION="$(<"$repo_dir/VERSION")"
 
 FFSMART_STATE_DIR="$test_dir/state"
 mkdir -p -- "$FFSMART_STATE_DIR"
@@ -165,13 +166,20 @@ ffsmart_refresh_hardware_inventory() {
     FFSMART_RENDER_NODES=(/dev/dri/renderD128)
     ffsmart_device_set signature /dev/dri/renderD128 0x8086:test
 }
-writer_bin="$test_dir/writer-bin"
-mkdir -- "$writer_bin"
+# A shell function keeps this injection executable in read-only/noexec Linux
+# containers; the failure is limited to the worker FIFO, not summary reads.
 real_cat="$(command -v cat)"
-printf '#!/bin/sh\n"%s" "$@" > /dev/null\nexit 1\n' "$real_cat" > "$writer_bin/cat"
-chmod +x "$writer_bin/cat"
-old_path="$PATH"
-PATH="$writer_bin:$PATH"
+cat() {
+    case "${2:-$1}" in
+        */.benchmark-stderr.*)
+            "$real_cat" "$@" > /dev/null
+            return 1
+            ;;
+        *)
+            "$real_cat" "$@"
+            ;;
+    esac
+}
 FFSMART_BENCH_CMD=(sh -c 'printf "ordinary diagnostic\\n" >&2; exit 0')
 FFSMART_BENCHMARK_LOG_FAILURE=false
 if ffsmart_rebuild_cache true; then
@@ -180,7 +188,7 @@ if ffsmart_rebuild_cache true; then
 else
     status=$?
 fi
-PATH="$old_path"
+unset -f cat
 [[ "$status" == 73 ]]
 [[ "$FFSMART_BENCHMARK_LOG_FAILURE" == true ]]
 [[ "$(<"$FFSMART_CACHE_FILE")" == old-cache-writer ]]
@@ -243,5 +251,91 @@ done
 [[ -s "$capacity_pid_file" ]]
 capacity_pid="$(<"$capacity_pid_file")"
 ! kill -0 "$capacity_pid" 2>/dev/null
+
+# Diagnostic failure is sticky across a capacity level: a later ordinary
+# worker rejection or low-speed result must not downgrade status 73 to 1.
+FFSMART_BENCHMARK_RUN_DIR="$FFSMART_STATE_DIR/.benchmark-run.sticky"
+mkdir -- "$FFSMART_BENCHMARK_RUN_DIR"
+sticky_worker_first_marker="$test_dir/sticky-worker-first"
+sticky_worker_second_marker="$test_dir/sticky-worker-second"
+sticky_extract_first_marker="$test_dir/sticky-extract-first"
+sticky_extract_second_marker="$test_dir/sticky-extract-second"
+ffsmart_benchmark_log_path() { printf '%s/%s' "$FFSMART_BENCHMARK_RUN_DIR" "$1"; }
+ffsmart_prepare_benchmark_log() { : > "$1"; }
+ffsmart_run_benchmark_command_worker() {
+    case "$1" in
+        *-1.log) : > "$sticky_worker_first_marker"; return 73 ;;
+        *-2.log) : > "$sticky_worker_second_marker"; return 1 ;;
+        *) return 1 ;;
+    esac
+}
+ffsmart_extract_speed() {
+    case "$1" in
+        *-1.log) : > "$sticky_extract_first_marker"; return 73 ;;
+        *-2.log) : > "$sticky_extract_second_marker"; printf '0'; return 0 ;;
+        *) return 73 ;;
+    esac
+}
+CONCURRENCY_WALL_TIMEOUT=1
+if ffsmart_capacity_level_stable /dev/dri/renderD128 vaapi h264 0 2 1; then
+    echo 'sticky capacity diagnostic failure unexpectedly succeeded' >&2
+    exit 1
+else
+    status=$?
+fi
+[[ "$status" == 73 ]]
+[[ -f "$sticky_worker_first_marker" && -f "$sticky_worker_second_marker" ]]
+[[ -f "$sticky_extract_first_marker" && -f "$sticky_extract_second_marker" ]]
+
+# A common-path diagnostic failure is also fatal; it must not be reduced to
+# an ordinary independent-path rejection and later cache publication.
+FFSMART_BENCHMARK_RUN_DIR=""
+alignment_called=false
+ffsmart_refresh_hardware_inventory() {
+    FFSMART_RENDER_NODES=(/dev/dri/renderD128 /dev/dri/renderD129)
+    ffsmart_device_set signature /dev/dri/renderD128 0x8086:test-a
+    ffsmart_device_set signature /dev/dri/renderD129 0x10de:test-b
+}
+ffsmart_run_benchmark_candidate() {
+    if [[ "$1" == /dev/dri/renderD128 ]]; then FFSMART_BENCHMARK_SPEED=2; else FFSMART_BENCHMARK_SPEED=1; fi
+    return 0
+}
+ffsmart_benchmark_device_path() { alignment_called=true; return 73; }
+ffsmart_probe_10bit() { return 1; }
+ffsmart_capacity_level_stable() { return 0; }
+ffsmart_cache_write() { return 0; }
+if ffsmart_rebuild_cache true; then
+    echo 'common-path diagnostic failure unexpectedly succeeded' >&2
+    exit 1
+else
+    status=$?
+fi
+[[ "$status" == 73 ]]
+[[ "$alignment_called" == true ]]
+
+# The rebuild boundary must preserve prior cache/summary when capacity reports
+# that sticky diagnostic failure, before cache publication is attempted.
+FFSMART_BENCHMARK_RUN_DIR=""
+printf 'old-cache-capacity\n' > "$FFSMART_CACHE_FILE"
+printf 'old-summary-capacity\n' > "$FFSMART_STATE_DIR/benchmark-latest.log"
+ffsmart_refresh_hardware_inventory() {
+    FFSMART_RENDER_NODES=(/dev/dri/renderD128 /dev/dri/renderD129)
+    ffsmart_device_set signature /dev/dri/renderD128 0x8086:test-a
+    ffsmart_device_set signature /dev/dri/renderD129 0x8086:test-b
+}
+ffsmart_benchmark_log_path() { printf '%s/%s-%s.log' "$FFSMART_BENCHMARK_RUN_DIR" "$1" "$RANDOM"; }
+ffsmart_benchmark_candidate() { FFSMART_BENCHMARK_SPEED=2; printf '2'; }
+ffsmart_probe_10bit() { return 1; }
+ffsmart_capacity_level_stable() { return 73; }
+FFSMART_BENCHMARK_LOG_FAILURE=false
+if ffsmart_rebuild_cache true; then
+    echo 'capacity rebuild diagnostic failure unexpectedly succeeded' >&2
+    exit 1
+else
+    status=$?
+fi
+[[ "$status" == 73 ]]
+[[ "$(<"$FFSMART_CACHE_FILE")" == old-cache-capacity ]]
+[[ "$(<"$FFSMART_STATE_DIR/benchmark-latest.log")" == old-summary-capacity ]]
 
 echo 'Benchmark diagnostic, cache transaction, and publication boundary tests passed'

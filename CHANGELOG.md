@@ -2,16 +2,20 @@
 
 All notable user-visible changes are documented here.
 
-## Unreleased
+## [0.1.0-beta.4] - 2026-09-21
 
 ### Fixed
 
-- Hardened benchmark diagnostics for the next wrapper beta: status-73 I/O
+- Hardened benchmark diagnostics: status-73 I/O
   propagation, checked post-create stderr persistence, unique private run logs,
   atomic summary publication before retention cleanup, cache-write preservation,
   contained cleanup, and bounded capacity-worker termination.
 
 ## [0.1.0-beta.3] - 2026-09-07
+
+The subsequent review found that the intended guarantees below were incomplete:
+subshells lost failure state and some persistence failures still reported success.
+Beta.4 repairs these boundaries and adds failure-injection coverage.
 
 ### Fixed
 

@@ -90,6 +90,20 @@ recorded baselines, inspect near-identical structure/comments/messages, and
 record the exact result here. A mechanical match threshold is evidence, not a
 legal substantial-similarity determination.
 
+### 2026-09-21 beta.4 candidate audit
+
+The current shell tree, including the new benchmark-integrity tests, was
+compared again with both recorded baselines after the diagnostic persistence
+and child-cleanup repairs. The unlicensed upstream has zero normalized
+non-comment matches at either the 32- or 48-character threshold. The
+mixed-rights baseline has zero 48-character matches and seven isolated
+32-character test-fixture matches, with no multi-line run. None is runtime or
+benchmark implementation; the new integrity test contributes no match.
+Review of the changed implementation, comments, messages, and new files found
+no donor source or additional third-party license obligation. The existing MIT
+notice remains unchanged. This evidence covers the beta.4 candidate source;
+the release archive must still be inspected from the exact committed tree.
+
 ## Licensing conclusion
 
 The current tree is offered under MIT by its stated copyright owner because it

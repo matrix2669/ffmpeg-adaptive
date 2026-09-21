@@ -587,3 +587,14 @@ These clarifications preserve ADR-014's ownership and retention decision while
 making its transaction and failure boundaries explicit. Revisit if the cache
 format becomes transactional across cache and diagnostics or if benchmark
 execution moves to a managed supervisor.
+
+Decision closure on 2026-09-21 confirms the operator's existing requirements:
+retain only the newest successful consolidated diagnostic, fail I/O errors
+instead of treating them as hardware rejection, and preserve diagnostic
+evidence on failure. Cache and summary are not a two-file atomic transaction:
+summary or cleanup failure after cache replacement still returns failure.
+The Dispatcharr integration must report that process outcome independently of
+whether the current cache validates. No benchmark thresholds or hardware
+selection policy change. Capacity cleanup gives the owning worker a two-second
+TERM grace before child KILL, with a three-second outer worker grace; review
+these bounds if orchestration or child ownership changes.

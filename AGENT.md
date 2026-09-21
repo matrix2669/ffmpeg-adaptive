@@ -68,6 +68,11 @@ Runtime state does not belong in source control. Replaceable installations set
 - The wrapper owns input structure, hardware/device selection, video encoder,
   hardware filters, and the fixed `-f mpegts pipe:1` destination.
 - Never log source URLs or embedded credentials.
+- Treat diagnostic I/O status 73 as fatal across every benchmark boundary;
+  ordinary unsupported hardware paths remain candidate rejection, not I/O failure.
+- Keep each trial's diagnostics distinct. Check cache writes and summary reads,
+  publish the summary before purging evidence, and terminate owned benchmark
+  children within bounded cleanup deadlines. Preserve failures for diagnosis.
 
 ## Development guidance
 
