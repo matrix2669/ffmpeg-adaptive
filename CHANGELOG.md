@@ -4,6 +4,28 @@ All notable user-visible changes are documented here.
 
 ## Unreleased
 
+## [0.1.0] - 2026-10-20
+
+### Stable release
+
+- Complete the beta.4 cycle as stable 0.1.0, including hardware-path fidelity,
+  per-device policy, benchmark diagnostic integrity and maintenance admission
+  repairs recorded below. Behavior is unchanged from the tested beta.4 source.
+- Direct standalone upgrades change the version component of the capability
+  fingerprint and may require a cache rebuild. The plugin keeps its old exact
+  source pin, so this standalone publication does not change its cache.
+- Finalize version identification and publish the inspected standalone package
+  with its SHA-256 checksum. Downstream consumers keep their immutable pins.
+
+### Validation
+
+- Repeat the full offline suite and fresh provenance audit for this release;
+  retain the exact hardware and pipe evidence in
+  `docs/beta4-validation-2026-09-21.md`. No new live benchmark or deployment is
+  part of this release.
+
+## Historical post-beta.4 validation
+
 ### CI maintenance
 
 - CI replacement run `35633440274` passed with workflow definition

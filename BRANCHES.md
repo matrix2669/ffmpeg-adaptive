@@ -23,6 +23,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `fix/benchmark-log-integrity` | short-lived | integrated | `dev@4df6c12` | `dev` | Fail unsafe benchmark diagnostics and retain only the latest successful consolidated log. |
 | `fix/benchmark-integrity-beta5` | short-lived | active; release and validation complete | `dev@4319656` | `dev` | Extend ADR-014 with checked diagnostic I/O, transactional retention, unique logs, bounded worker cleanup, and deterministic CI validation for wrapper beta.4. |
 | `feature/dev-main-promotion-2026-10-20` | short-lived | prepared for integration | `dev@a818fee` | `dev`, then `main` | Document the authorized branch-only promotion of unchanged beta.4 code. |
+| `feature/stable-v0.1.0-2026-10-20` | feature | stable release preparation | `dev@3c560c1` | `dev`, then `main` | Publish approved 0.1.0 with unchanged behavior and inspected package/checksum. |
 
 ## Branch records
 
@@ -180,3 +181,17 @@ authoritative for live refs, commits, pull requests, and checks.
   A stable version/tag, fresh release provenance audit, inspected package,
   checksum, and GitHub Release remain the separate `RELEASE.md` delivery path.
 - This branch is retained; branch deletion is not authorized.
+
+### `feature/stable-v0.1.0-2026-10-20`
+
+- Base: `dev@3c560c1d770a1ff102188f9011d731971247b844`; target dev, then main.
+- Authority: operator approval on 2026-10-20 to finish promotion and release.
+- Scope: finalize 0.1.0 version sources, stable changelog and release evidence;
+  validate and publish immutable v0.1.0 and its package/checksum.
+- Behavior: identical to beta.4 except version identification. All runtime
+  modules remain unchanged. Historical hardware/pipe proof applies to that
+  behavior; this release does not claim fresh hardware measurements.
+- Gates: full validation, fresh provenance audit, independent review, archive
+  extraction/inspection, dev/main/tag CI and byte-verified asset downloads.
+- Excluded: deployments, streams, downstream runtime pin changes, force pushes
+  and branch deletion. The plugin retains its tested beta.4 source pin.

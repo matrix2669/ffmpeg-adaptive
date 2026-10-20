@@ -104,6 +104,32 @@ no donor source or additional third-party license obligation. The existing MIT
 notice remains unchanged. This evidence covers the beta.4 candidate source;
 the release archive must still be inspected from the exact committed tree.
 
+### 2026-10-20 stable 0.1.0 audit
+
+Repeated the current-tree comparison over all 21 tracked shell files, including
+stable version-only edits. Against upstream
+`99899d05affa501404ef2d2b926136a80bb87c75`, normalized non-comment lines have
+zero exact matches at 32 or 48 characters. Against mixed-rights baseline
+`7829924588336f1de07f18d944472c429a32c5b1`, zero match at 48; at 32 there are
+12 occurrences across seven test files (five distinct fixture-mechanic lines),
+no runtime/benchmark matches and no multi-line runs. The prior 'seven isolated'
+wording counted affected files; it does not indicate a new implementation match.
+
+Normalization trims lines, excludes blank/full-line comments, and collapses
+whitespace; thresholds apply to normalized character counts. Near-similarity
+review at length >=48 and SequenceMatcher ratio >=0.85 found only ordinary
+shell mechanics and public CLI/environment/FFmpeg interface expressions.
+Review of long comments and changed files found no substantive donor block,
+additional third-party notice or licensing obligation. Post-beta.4 additions
+are owned validation/documentation and checksum-pinned CI; runtime edits are
+only version assignments. No tracked binary, media, cache or generated package
+is included. LICENSE is unchanged at SHA-256
+`8eeb42aabf791dca7a649a5afe52664fa7e0ba64878c88db2cd6f02598e59f36`.
+
+The audit supports this exact candidate; inspect the archive from the committed
+release tree and verify downloaded artifacts separately. Mechanical results do
+not replace the engineering review or constitute a legal opinion.
+
 ## Licensing conclusion
 
 The current tree is offered under MIT by its stated copyright owner because it

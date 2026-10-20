@@ -684,3 +684,35 @@ only, unchanged beta identity, and separate publication. No accepted behavior,
 license or release rule is superseded. Revisit when the operator requests a
 stable release or a downstream pin update. Record dev/main CI terminal results
 in the promotion report; do not claim completion on pending or failed CI.
+
+---
+
+# ADR-017: Complete the approved 0.1.0 stable release
+
+## Status and date
+
+Accepted, 2026-10-20; extends the prior branch-only ADR-016 after new approval.
+
+## Decision
+
+The operator subsequently approved finishing the promotion and release. Finalize
+0.1.0 in VERSION, ffmpeg-smart.sh and benchmark-accel.sh; promote through dev to
+main, publish immutable v0.1.0 and a normal GitHub Release with an inspected
+`ffmpeg-adaptive-v0.1.0.tar.gz` and SHA-256 file. Preserve old tags and artifacts.
+
+## Rationale and boundaries
+
+The accepted beta.4 runtime behavior, modules, tests and hardware evidence remain
+unchanged; only version identification and release records change. Repeat the
+full offline suite and provenance audit. This approval supersedes ADR-016's
+publication exclusion for this exact release only. It does not authorize live
+hardware work or deployment. The Dispatcharr plugin continues to vendor
+913a958fd5f9edc231c49a70539a09f611fdcc5a, avoiding any cache-fingerprint change
+in its installed runtime. A stable standalone release is not a command to
+rebundle downstream code. Further runtime changes require their own test cycle.
+
+## Closure
+
+Exact version, artifact format, pin independence, licensing and publication
+scope are explicit; no runtime behavior or license decision is changed. CI and
+asset verification results belong in the release report and release notes.
