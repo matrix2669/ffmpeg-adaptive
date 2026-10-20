@@ -22,6 +22,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `fix/benchmark-runtime-fidelity` | short-lived | integrated | `dev@80d648b` | `dev` | Make capacity measurements and per-device runtime policy use equivalent hardware commands. |
 | `fix/benchmark-log-integrity` | short-lived | integrated | `dev@4df6c12` | `dev` | Fail unsafe benchmark diagnostics and retain only the latest successful consolidated log. |
 | `fix/benchmark-integrity-beta5` | short-lived | active; release and validation complete | `dev@4319656` | `dev` | Extend ADR-014 with checked diagnostic I/O, transactional retention, unique logs, bounded worker cleanup, and deterministic CI validation for wrapper beta.4. |
+| `feature/dev-main-promotion-2026-10-20` | short-lived | prepared for integration | `dev@a818fee` | `dev`, then `main` | Document the authorized branch-only promotion of unchanged beta.4 code. |
 
 ## Branch records
 
@@ -161,3 +162,21 @@ authoritative for live refs, commits, pull requests, and checks.
   plugin/tag/dev CI, and registry CI are recorded in the validation document.
 - Expected outcome: documentation closure with completed bounded hardware and
   pipe evidence; no new runtime or release artifact is authorized.
+
+### `feature/dev-main-promotion-2026-10-20`
+
+- Created: 2026-10-20; base `dev@a818fee172dde2d0cf39dcd43d1c52491dbfc82b`.
+- Target: ordinary fast-forward integration into `dev`, then promotion to `main`.
+- Scope: record the operator-authorized branch promotion. Runtime, tests,
+  versions, tags, Releases, plugin pins, registries, and deployments are unchanged.
+- Validation: workspace standards reconciliation and `./scripts/validate.sh`
+  passed locally with ShellCheck 0.11.0. Existing dev CI run `35635751102`
+  passed; newly initiated dev/main CI must also pass before completion.
+- Source review: the runtime, benchmark tools, tests, and validation script are
+  byte-identical to immutable beta.4 commit
+  `913a958fd5f9edc231c49a70539a09f611fdcc5a`. Its recorded hardware, pipe,
+  provenance, and archive evidence remains applicable.
+- Version remains `0.1.0-beta.4`; this branch promotion is not a stable release.
+  A stable version/tag, fresh release provenance audit, inspected package,
+  checksum, and GitHub Release remain the separate `RELEASE.md` delivery path.
+- This branch is retained; branch deletion is not authorized.

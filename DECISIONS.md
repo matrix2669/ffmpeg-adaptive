@@ -649,3 +649,38 @@ managed beta.5 benchmark subsequently completed at
 and reviewed cleanup. Native capacity and bounded pipe evidence are recorded
 separately; no live-provider channel was fetched and no actual profile was
 created.
+
+---
+
+# ADR-016: Separate the authorized branch promotion from stable publication
+
+## Status and date
+
+Accepted for the 2026-10-20 branch promotion only.
+
+## Decision and authority
+
+The operator requested promotion of `ffmpeg-adaptive` from `dev` to `main` on
+2026-10-20. Promote the reviewed `dev` history based on
+`a818fee172dde2d0cf39dcd43d1c52491dbfc82b`, plus this scoped documentation,
+using ordinary non-force fast-forwards through `dev` to `main` after checks.
+Do not convert this request into a stable release or downstream update.
+
+## Rationale and consequences
+
+The runtime and tests are unchanged from tested beta.4 source
+`913a958fd5f9edc231c49a70539a09f611fdcc5a`; the plugin still pins that exact
+commit. Preserve `0.1.0-beta.4` in all version sources, avoiding a version-only
+runtime change and any downstream cache implications. Branch promotion does
+not certify a new stable artifact. `RELEASE.md` continues to govern a later
+stable version, immutable tag, fresh provenance audit, package/checksum and
+explicitly approved GitHub Release. No tag, Release, registry, plugin pin,
+installation or deployment is part of this promotion.
+
+## Closure and review trigger
+
+The scope answers the material choices: exact existing code, branch promotion
+only, unchanged beta identity, and separate publication. No accepted behavior,
+license or release rule is superseded. Revisit when the operator requests a
+stable release or a downstream pin update. Record dev/main CI terminal results
+in the promotion report; do not claim completion on pending or failed CI.
