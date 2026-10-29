@@ -284,6 +284,35 @@ compatible video transcode requires explicit rationale and regression tests.
 The unconstrained video rate remains 8 Mbps at 1920x1080 scaled by output pixel
 count, with a 2 Mbps floor.
 
+
+## Automatic codec clarification — 2026-10-29
+
+The operator requested correction of unnecessary H.264-to-HEVC conversion when
+Smart's cache preferred HEVC and only `-deint` was active on progressive input.
+Without `-vc`, H.264 and HEVC satisfy the codec compatibility requirement. The
+cached `best_codec` is an encoder preference for required conversions, not a
+reason to transcode otherwise compatible video. Other input codecs, including
+unknown codec names reaching policy resolution, still require normalization to
+the cached codec (H.264 fallback). This retains the existing compatibility set;
+it does not broaden copying to every codec MPEG-TS might carry. Probe admission
+for missing metadata remains unchanged.
+
+An explicit `-vc` requires that codec and overrides the cached preference for
+any conversion. Resolution, bitrate (including unknown bitrate under `-maxbr`),
+HDR-to-SDR and interlace constraints remain independent conversion reasons. If
+one requires conversion in automatic mode, use the cached preferred encoder;
+do not constrain that conversion to the input codec. Accelerator selection alone
+is not a conversion reason. Compatible HDR/10-bit video can copy without encoder
+capability checks because no encoder is used. Audio conversion never forces
+video conversion (ADR-008).
+
+This clarifies ADR-007 rather than changing its copy-first intent. Rejected:
+letting benchmark preference force every stream to its codec, or copying all
+unknown codecs without normalization. Regression coverage must exercise both
+cached codec preferences, explicit codec overrides, active/satisfied limits,
+progressive/interlaced input, HDR and independent audio decisions. Revisit the
+compatibility set only with an explicit supported-codec policy change.
+
 ---
 
 # ADR-008: Normalize audio independently and preserve compatible AAC

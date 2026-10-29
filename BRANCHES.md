@@ -24,6 +24,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `fix/benchmark-integrity-beta5` | short-lived | active; release and validation complete | `dev@4319656` | `dev` | Extend ADR-014 with checked diagnostic I/O, transactional retention, unique logs, bounded worker cleanup, and deterministic CI validation for wrapper beta.4. |
 | `feature/dev-main-promotion-2026-10-20` | short-lived | prepared for integration | `dev@a818fee` | `dev`, then `main` | Document the authorized branch-only promotion of unchanged beta.4 code. |
 | `feature/stable-v0.1.0-2026-10-20` | feature | stable release preparation | `dev@3c560c1` | `dev`, then `main` | Publish approved 0.1.0 with unchanged behavior and inspected package/checksum. |
+| `fix/conditional-video-transcode` | short-lived fix | implemented; review pending | `dev@5ed3068` | `dev` | Preserve compatible video unless an active policy requires conversion. |
 
 ## Branch records
 
@@ -195,3 +196,18 @@ authoritative for live refs, commits, pull requests, and checks.
   extraction/inspection, dev/main/tag CI and byte-verified asset downloads.
 - Excluded: deployments, streams, downstream runtime pin changes, force pushes
   and branch deletion. The plugin retains its tested beta.4 source pin.
+
+### `fix/conditional-video-transcode`
+
+- Created: 2026-10-29; base `dev@5ed3068`; target `dev`.
+- Scope: distinguish automatic encoder preference from a requested codec;
+  preserve compatible H.264/HEVC, independent audio policy, and explicit codec
+  conversions; add policy regressions and align user/decision documentation.
+- Validation: `./scripts/validate.sh` passed locally on 2026-10-29 with
+  ShellCheck 0.11.0, including exact copy/transcode command assertions for both
+  cached codec preferences and the cached VAAPI/HEVC progressive-input regression.
+  Hardware and live-provider validation remain separate; mocked command tests
+  do not establish those outcomes.
+- Excluded: release/version changes, standards reconciliation, promotion,
+  publication and deployment in this implementation batch. Downstream packaging
+  and authorized live validation are coordinated separately.

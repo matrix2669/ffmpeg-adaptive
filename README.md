@@ -81,7 +81,7 @@ Dispatcharr profiles even though the standalone project is named
 
 | Option | Behavior |
 |---|---|
-| `-vc h264\|hevc` | Request the target video codec. |
+| `-vc h264\|hevc` | Require this video codec; convert only if the source or another policy requires it. |
 | `-accel auto\|qsv\|vaapi\|nvenc\|videotoolbox\|v4l2m2m\|software` | Select or constrain acceleration. |
 | `-sdr` | Convert HDR output to SDR when transcoding. |
 | `-deint` | Deinterlace interlaced video; progressive video is left progressive. |
@@ -91,6 +91,15 @@ Dispatcharr profiles even though the standalone project is named
 | `-device PATH` | Pin the shared DRI device. |
 | `-qsv-device PATH` | Pin QSV to a render node. |
 | `-vaapi-device PATH` | Pin VAAPI to a render node. |
+
+Without `-vc`, H.264 and HEVC video is copied when it satisfies the active
+resolution, bitrate, SDR and deinterlace requirements, regardless of the cached
+preferred encoder. Other codecs (including unknown codec names) are normalized.
+When conversion is needed, the cached codec preference chooses the encoder
+(defaulting to H.264 if absent); `-vc` overrides that preference. `-accel` selects
+an encoding backend and does not itself require conversion. Audio normalization
+is independent: non-AAC audio or a channel-limit violation can convert while
+video copies. `-maxbr` requires conversion when the video bitrate is unknown.
 
 The environment variables `DRI_DEVICE`, `QSV_DEVICE`, and `VAAPI_DEVICE`
 provide the same device controls. Explicit command-line values take

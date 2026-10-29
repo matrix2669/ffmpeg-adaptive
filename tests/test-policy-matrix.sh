@@ -15,6 +15,8 @@ if [[ "${1:-}" == -version ]]; then echo 'ffprobe version test-build'; exit 0; f
 codec=h264; width=1920; height=1080; pix=yuv420p; field=progressive; bitrate=4000000; transfer=bt709; primaries=bt709; audio=aac; channels=2
 case "$FFMPEG_SMART_TEST_MEDIA" in
   hevc) codec=hevc ;;
+  mpeg2) codec=mpeg2video ;;
+  unknowncodec) codec=unknown ;;
   low) width=640; height=360; bitrate=700000 ;;
   highbitrate) bitrate=9000000 ;;
   unknownbitrate) bitrate=N/A ;;
@@ -91,5 +93,96 @@ grep -Fq 'HDR -> SDR' "$test_dir/hdr-sdr.log"
 grep -Fq 'tonemap=' "$test_dir/hdr-sdr.args"
 grep -Fxq -- '-color_trc' "$test_dir/hdr-sdr.args"
 grep -Fxq -- 'bt709' "$test_dir/hdr-sdr.args"
+
+# Check the exact video option: a generic "copy" may only describe audio.
+assert_option() {
+    local name="$1" option="$2" expected="$3"
+    awk -v option="$option" -v expected="$expected" '
+        $0 == option { if (getline > 0 && $0 == expected) found=1 }
+        END { exit !found }
+    ' "$test_dir/$name.args"
+}
+
+assert_video_copy() {
+    local name="$1"
+    grep -Fq 'Video copy' "$test_dir/$name.log"
+    assert_option "$name" -c:v copy
+    ! grep -Eq '^(-vf|-hwaccel|-init_hw_device|-filter_hw_device)$' "$test_dir/$name.args"
+}
+
+# Automatic mode must not confuse an encoder preference with a codec request.
+for preferred in h264 hevc; do
+    PATH="$fake_bin:$PATH" FFMPEG_SMART_STATE_DIR="$state_dir" \
+        test_write_valid_cache "$repo_dir" "$state_dir" software "$preferred"
+    if [[ "$preferred" == hevc ]]; then encoder=libx265; else encoder=libx264; fi
+    for media in h264 hevc hdr10; do
+        name="auto-$preferred-$media"
+        run_case "$name" "$media"
+        assert_video_copy "$name"
+        assert_option "$name" -c:a copy
+    done
+    name="auto-$preferred-progressive"
+    run_case "$name" h264 -deint -accel vaapi
+    assert_video_copy "$name"
+    name="auto-$preferred-satisfied"
+    run_case "$name" low -maxres 720 -maxbr 2M -sdr -deint
+    assert_video_copy "$name"
+    name="auto-$preferred-boundary"
+    run_case "$name" h264 -maxres 1080 -maxbr 4M
+    assert_video_copy "$name"
+
+    for media in mpeg2 unknowncodec; do
+        name="auto-$preferred-$media"
+        run_case "$name" "$media"
+        grep -Fq 'codec ' "$test_dir/$name.log"
+        assert_option "$name" -c:v "$encoder"
+    done
+    name="auto-$preferred-scale"
+    run_case "$name" h264 -maxres 720
+    assert_option "$name" -c:v "$encoder"
+    grep -Fq 'scale=1280:720' "$test_dir/$name.args"
+    for media in highbitrate unknownbitrate; do
+        name="auto-$preferred-$media"
+        run_case "$name" "$media" -maxbr 2M
+        assert_option "$name" -c:v "$encoder"
+        assert_option "$name" -maxrate 2000000
+        assert_option "$name" -bufsize 4000000
+    done
+    name="auto-$preferred-interlaced"
+    run_case "$name" interlaced -deint
+    assert_option "$name" -c:v "$encoder"
+    grep -Fq 'bwdif=' "$test_dir/$name.args"
+    name="auto-$preferred-hdr-sdr"
+    run_case "$name" hdr10 -sdr
+    assert_option "$name" -c:v "$encoder"
+    grep -Fq 'tonemap=' "$test_dir/$name.args"
+    assert_option "$name" -color_trc bt709
+    for media in ac3 surround; do
+        name="auto-$preferred-audio-$media"
+        run_case "$name" "$media" -maxchan 2
+        assert_video_copy "$name"
+        assert_option "$name" -c:a aac
+        assert_option "$name" -ac 2
+    done
+    for requested in h264 hevc; do
+        name="explicit-$preferred-$requested-copy"
+        run_case "$name" "$requested" -vc "$requested"
+        assert_video_copy "$name"
+        if [[ "$requested" == hevc ]]; then other=h264; explicit_encoder=libx265
+        else other=hevc; explicit_encoder=libx264; fi
+        name="explicit-$preferred-$requested-convert"
+        run_case "$name" "$other" -vc "$requested"
+        assert_option "$name" -c:v "$explicit_encoder"
+        name="explicit-$preferred-$requested-scale"
+        run_case "$name" "$requested" -vc "$requested" -maxres 720
+        assert_option "$name" -c:v "$explicit_encoder"
+    done
+done
+
+# Mirror the live regression: cached VAAPI/HEVC, progressive H.264, -deint.
+PATH="$fake_bin:$PATH" FFMPEG_SMART_STATE_DIR="$state_dir" \
+    test_write_valid_cache "$repo_dir" "$state_dir" vaapi hevc
+run_case cached-vaapi-copy h264 -deint
+assert_video_copy cached-vaapi-copy
 
 echo 'Video, audio, scaling, bitrate, deinterlace, and HDR policy tests passed'

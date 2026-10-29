@@ -4,6 +4,11 @@ All notable user-visible changes are documented here.
 
 ## Unreleased
 
+- Fix unnecessary video transcoding when the capability cache prefers a different
+  codec: automatic mode now copies compatible H.264/HEVC unless an active video
+  constraint requires conversion. Explicit `-vc`, normalization of other codecs,
+  and independent audio conversion retain their existing behavior.
+
 ## [0.1.0] - 2026-10-20
 
 ### Stable release
