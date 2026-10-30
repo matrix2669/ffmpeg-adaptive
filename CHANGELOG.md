@@ -4,6 +4,12 @@ All notable user-visible changes are documented here.
 
 ## Unreleased
 
+- Detect continuous MPEG-TS from the initial HTTP response in shared-input Auto,
+  including URLs without TS hints and missing/misleading MIME labels. Probes and
+  playback reuse the same retained TS connection. Opaque non-TS formats return
+  to ordinary FFmpeg acquisition before output; known HLS, proxy/custom-input
+  bypasses, strict mode and terminal network-failure behavior are preserved.
+
 - Fix unnecessary video transcoding when the capability cache prefers a different
   codec: automatic mode now copies compatible H.264/HEVC unless an active video
   constraint requires conversion. Explicit `-vc`, normalization of other codecs,

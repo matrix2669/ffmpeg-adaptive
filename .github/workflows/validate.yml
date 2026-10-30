@@ -6,6 +6,7 @@ on:
       - main
       - dev
       - feature/shared-input-reservoir
+      - fix/opaque-ts-auto
     tags:
       - "v*"
   pull_request:

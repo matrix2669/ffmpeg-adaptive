@@ -90,3 +90,13 @@ H.264/HEVC cache preference; it is never stored as a fixed deployment codec.
 Public `mpeg2` aliases `mpeg2video`, with normalized CSV whitespace/case. See
 ADR-020. Local fixture cancellation covers both probing and playback under the
 plugin's planned 10-second startup and 30-second internal network guards.
+
+### Unhinted response classification (2026-10-30)
+
+ADR-021 supersedes the URL-hint-only Auto limitation above. Direct HTTP(S) opaque
+URLs are classified from the retained body; valid 188-byte TS uses one upstream
+media response regardless of MIME. Non-TS returns to the original FFmpeg URL
+before probes/output, with classification-only counters and the same deadline.
+Known HLS/proxy/custom-input bypasses and strict mode remain unchanged. Real
+local HLS validation includes Basic auth, redirect and relative segment handling;
+live provider and installed downstream validation remain separate.

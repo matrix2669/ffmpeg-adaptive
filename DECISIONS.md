@@ -986,3 +986,88 @@ replay and bounded cancellation. No hardware/audio/cache-format, live operation,
 installation or publication change is inferred. Review Auto gates only with
 transport-equivalence evidence; do not trade legacy proxy behavior for automatic
 optimization based on a URL suffix alone.
+
+---
+
+# ADR-021: Classify unhinted HTTP input using the retained response
+
+## Status, authority and supersession
+
+Accepted for implementation on 2026-10-30. The operator requested shared input
+for continuous TS sources whose URLs contain no TS hint after channel 588 used
+legacy probing. This supersedes ADR-018/020's URL-hint-only Auto gate and
+no-fallback-before-format-detection wording. Strict and Off remain unchanged.
+
+## Decision
+
+Auto admits direct HTTP(S) with Python 3.9+, no custom input-option tokens, and
+no ambient HTTP/HTTPS/ALL/FTP/SOCKS proxy variables. Known `.m3u8` paths continue
+to bypass classification. The owned upstream reader starts after cache admission
+and checks its actual initial body for 188-byte TS sync at offsets 0, 188, 376.
+MIME is advisory only. Valid TS bytes, including byte zero, remain in the same
+RAM queue for all probe tiers and playback; classification adds no second GET
+or upstream media open, no fixed prefill, and no stream rewrite.
+
+Before launching any probe/playback child, non-TS bodies, short unsupported
+bodies and unsupported content encoding select a one-time legacy fallback.
+Close the classification connection, preserve the original URL/environment, and
+run the ordinary wrapper under the same supervisor startup deadline and owned
+process-group cleanup. FFmpeg remains responsible for opaque HLS, redirects,
+relative playlist URIs and authentication. The internal `FFSMART_SHARED_LEGACY`
+child marker disables only Auto classification and avoids repeating an explicit
+cache rebuild; it cannot turn strict mode into fallback. No provider URLs,
+credentials or broker tokens enter the new logs.
+
+A fallback may reopen non-TS via the existing legacy probe/playback behavior.
+It is not a successful single-connection optimization. Emit `auto_fallback=non-ts`
+and label its summary `shared-input classification`; those counters cover only
+the classifier and must not be treated as total legacy acquisitions. Successful
+shared TS retains the existing telemetry contract.
+
+Network/HTTP-status, unsafe redirect, truncated-body, cap starvation and startup
+timeout failures remain terminal; they never retry the source or fall back.
+After valid TS is selected, format/read failure also remains terminal. Retained
+payload bounds, independent idle guard, explicit cancellation and no-disk-spool
+policy are unchanged. Legacy fallback keeps normal proxy behavior (though Auto
+bypasses configured proxies before opening) and receives no private broker URL.
+
+## Alternatives and consequences
+
+A separate MIME/HEAD/probe GET would discard startup data and can open a second
+provider session. Trusting Content-Type fails for generic or incorrect server
+labels. Feeding an HLS playlist through the broker changes relative URI/auth
+resolution; fallback must use the original URL. Supporting an HLS shared reader
+is a separate design, not an implicit consequence of this change.
+
+The one extra classification request for previously opaque non-TS sources is an
+explicit compatibility cost. Known HLS keeps its zero-classification path.
+Provider-specific redirects, cookies or signed one-use URLs may need custom
+input configuration and therefore the existing Auto bypass. No general HTTP
+transport-equivalence guarantee is made.
+
+## Evidence and review triggers
+
+Local regression requirements: missing/misleading MIME and opaque TS preserve
+all-tier prefix replay and one media request; strict unsupported input remains
+fail-closed; opaque HLS works through a real redirect, Basic authentication and
+relative segment URL with decoded audio/video; non-TS fallback runs once before
+probes; errors do not retry; startup deadline and cancellation cover classifier
+and legacy child. Run the complete validation suite and independent review,
+then separately measure live startup. Source work does not install a plugin or
+change profiles, channels, defaults, tags or registries. Review this decision
+before adding shared HLS, cookies, additional packet sizes or retry behavior.
+
+### Authenticated relative redirect correction
+
+The real opaque-HLS fixture exposed an inherited userinfo bug: `urljoin` kept
+credentials from the original URL in a relative target, which the redirect guard
+then rejected as newly supplied credentials. The internal transport URL now
+removes initial userinfo after constructing the scoped Basic header. Relative
+redirects retain same-origin auth; explicit userinfo in Location is still rejected
+and cross-origin headers remain stripped. No authentication capability is added.
+
+Local completion: `./scripts/validate.sh` passed with Python 3.14.7, FFmpeg 9.0.1
+and ShellCheck 0.11.0 on 2026-10-30; all 20 shared-input methods passed. Local
+loopback fixture permission was required. No source provider, installed plugin,
+profile or cache was changed by this implementation batch. Exact CI, independent
+review and live startup evidence remain parent-owned gates.

@@ -67,6 +67,14 @@ else:
             def do_GET(self):
                 with cls.lock:
                     cls.requests.append((self.path, dict(self.headers)))
+                if self.path.startswith('/status-error'):
+                    self.send_error(503)
+                    return
+                if self.path.startswith('/credential-redirect'):
+                    self.send_response(302)
+                    self.send_header('Location', 'http://user:secret@127.0.0.1:%d/ok' % cls.server.server_port)
+                    self.end_headers()
+                    return
                 if self.path.startswith('/loop'):
                     self.send_response(302)
                     self.send_header('Location', '/loop')
@@ -83,6 +91,10 @@ else:
                     self.end_headers()
                     return
                 self.send_response(200)
+                if self.path.startswith('/wrong-mime'):
+                    self.send_header('Content-Type', 'application/vnd.apple.mpegurl')
+                if self.path.startswith('/right-mime'):
+                    self.send_header('Content-Type', 'video/mp2t')
                 body = PACKETS
                 if self.path.startswith('/bad'): body = b'#EXTM3U\n' * 100
                 if self.path.startswith('/early'): body = b'\x47' * 100
@@ -92,7 +104,9 @@ else:
                     self.send_header('Content-Length', str(len(body) * (64 if self.path.startswith('/large') else 1)))
                 self.end_headers()
                 try:
-                    if self.path.startswith('/stall'):
+                    if self.path.startswith('/silent'):
+                        time.sleep(4)
+                    elif self.path.startswith('/stall'):
                         self.wfile.write(PACKETS[:188 * 5])
                         self.wfile.flush()
                         time.sleep(4)
@@ -206,8 +220,8 @@ printf '%s' "$FFSMART_SHARED_INPUT"
             ('https://example.invalid/live?output=ts', (), 'true'),
             ('https://example.invalid/live.TS', (), 'true'),
             ('https://example.invalid/live.m3u8?format=ts', (), 'false'),
-            ('https://example.invalid/opaque', (), 'false'),
-            ('https://example.invalid/live?token=.ts', (), 'false'),
+            ('https://example.invalid/opaque', (), 'true'),
+            ('https://example.invalid/live?token=.ts', (), 'true'),
             ('rtsp://example.invalid/live.ts', (), 'false'),
             ('pipe:0', (), 'false'),
             ('https://example.invalid/live.ts', ('-ffmpeg-input-option', '-headers', '-ffmpeg-input-option', 'Authorization: hidden'), 'false'),
@@ -227,6 +241,93 @@ printf '%s' "$FFSMART_SHARED_INPUT"
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(p.stdout, PACKETS)
         self.assertIn(b'upstream_opens=1 upstream_requests=1', p.stderr)
+
+    def auto_env(self, name, real=False):
+        run, env = self.setup_run(name, real=real)
+        for key in list(env):
+            if key.lower() in ('http_proxy', 'https_proxy', 'all_proxy', 'ftp_proxy', 'socks_proxy'):
+                del env[key]
+        env['FFMPEG_SMART_SHARED_INPUT'] = 'auto'
+        return run, env
+
+    def test_auto_opaque_ts_replays_prefix_regardless_of_mime(self):
+        for i, route in enumerate(('/opaque', '/wrong-mime', '/right-mime', '/redirect')):
+            with self.subTest(route=route):
+                run, env = self.auto_env('opaque%d' % i)
+                env['FFMPEG_SMART_SHARED_INPUT_BYTES'] = '65536'
+                before = len(self.requests)
+                p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + route], env=env, capture_output=True, timeout=12)
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertEqual(p.stdout, PACKETS)
+                self.assertEqual(len(self.requests) - before, 2 if route == '/redirect' else 1)
+                for tier in range(1, 4):
+                    self.assertEqual((run / ('prefix%d' % tier)).read_bytes(), PACKETS[:940])
+                self.assertIn(b'upstream_opens=1', p.stderr)
+                self.assertNotIn(b'auto_fallback', p.stderr)
+
+    def test_auto_non_ts_falls_back_before_probes_without_recursion(self):
+        for i, route in enumerate(('/bad', '/early')):
+            run, env = self.auto_env('fallback%d' % i)
+            before = len(self.requests)
+            p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '--shared-input-auto', '-i', self.url + route], env=env, capture_output=True, timeout=12)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn(b'auto_fallback=non-ts', p.stderr)
+            self.assertNotIn(b'shared-input upstream_opens=', p.stderr)
+            self.assertIn(b'shared-input classification upstream_opens=1', p.stderr)
+            # One bounded classification, then the unchanged three legacy
+            # probe requests and one playback request. No recursive sniff.
+            self.assertEqual(len(self.requests) - before, 5)
+            self.assertIn(self.url + route, (run / 'args').read_text())
+            self.assertNotIn(self.url.encode(), p.stderr)
+
+    def test_auto_failure_does_not_reopen_and_classification_cancels(self):
+        for i, route in enumerate(('/truncated', '/loop', '/status-error', '/credential-redirect')):
+            run, env = self.auto_env('auto-failure%d' % i)
+            before = len(self.requests)
+            p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + route], env=env, capture_output=True, timeout=12)
+            self.assertEqual(p.returncode, 65, p.stderr)
+            self.assertNotIn(b'auto_fallback', p.stderr)
+            self.assertEqual(len(self.requests) - before, 6 if route == '/loop' else 1)
+        run, env = self.auto_env('auto-fallback-cancel')
+        env['TEST_BLOCK'] = '1'
+        env['FFMPEG_SMART_SHARED_INPUT_DEADLINE'] = '10'
+        p = subprocess.Popen([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + '/bad'], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        until = time.monotonic() + 2
+        while not (run / 'args').exists() and time.monotonic() < until: time.sleep(.01)
+        self.assertTrue((run / 'args').exists())
+        p.send_signal(signal.SIGTERM)
+        _, error = p.communicate(timeout=3)
+        self.assertEqual(p.returncode, 130, error)
+
+    def test_auto_classification_and_fallback_share_deadline(self):
+        for i, route in enumerate(('/silent', '/bad')):
+            run, env = self.auto_env('auto-deadline%d' % i)
+            env.update(FFMPEG_SMART_SHARED_INPUT_DEADLINE='1', FFMPEG_SMART_SHARED_INPUT_IDLE='30', TEST_BLOCK='1')
+            p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + route], env=env, capture_output=True, timeout=4)
+            self.assertEqual(p.returncode, 65, p.stderr)
+            self.assertIn(b'startup-deadline', p.stderr)
+            if route == '/silent':
+                self.assertFalse((run / 'args').exists())
+                self.assertNotIn(b'auto_fallback', p.stderr)
+        run, env = self.auto_env('auto-classification-cancel')
+        env.update(FFMPEG_SMART_SHARED_INPUT_DEADLINE='10', FFMPEG_SMART_SHARED_INPUT_IDLE='30')
+        p = subprocess.Popen([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + '/silent'], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(.3)
+        p.send_signal(signal.SIGTERM)
+        output, error = p.communicate(timeout=3)
+        self.assertEqual(p.returncode, 130, error)
+        self.assertEqual(output, b'')
+        self.assertFalse((run / 'args').exists())
+
+    def test_known_hls_and_explicit_off_do_not_classify(self):
+        for i, route in enumerate(('/bad.m3u8', '/opaque')):
+            run, env = self.auto_env('unchanged-legacy%d' % i)
+            if route == '/opaque': env['FFMPEG_SMART_SHARED_INPUT'] = 'false'
+            before = len(self.requests)
+            p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + route], env=env, capture_output=True, timeout=12)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(len(self.requests) - before, 4)
+            self.assertNotIn(b'shared-input', p.stderr)
 
     def test_auto_keeps_legacy_for_any_ambient_proxy(self):
         script = '''source "$1/lib/ffsmart-common.sh"
@@ -385,6 +486,52 @@ printf '%s' "$FFSMART_SHARED_INPUT"
                 self.assertEqual(p.stdout, PACKETS)
         self.assertEqual(len(self.requests) - before, 2)
 
+    def test_auto_opaque_hls_redirect_relative_segment_and_auth(self):
+        fixture = self.base / 'hls-media.ts'
+        subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=160x120:rate=25', '-f', 'lavfi', '-i', 'sine=sample_rate=48000', '-t', '3', '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', '-f', 'mpegts', str(fixture)], check=True)
+        data = fixture.read_bytes()
+        playlist = b'#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:3\n#EXT-X-MEDIA-SEQUENCE:0\n#EXTINF:3.0,\nsegment.ts\n#EXT-X-ENDLIST\n'
+        requests = []
+        class HlsFixture(BaseHTTPRequestHandler):
+            def log_message(self, *_args): pass
+            def do_GET(self):
+                requests.append((self.path, self.headers.get('Authorization')))
+                if self.headers.get('Authorization') != 'Basic dXNlcjpzZWNyZXQ=':
+                    self.send_response(401)
+                    self.send_header('WWW-Authenticate', 'Basic realm="fixture"')
+                    self.end_headers()
+                    return
+                if self.path.startswith('/entry'):
+                    self.send_response(302)
+                    self.send_header('Location', '/hls/opaque')
+                    self.end_headers()
+                    return
+                body = data if self.path == '/hls/segment.ts' else playlist
+                self.send_response(200)
+                self.send_header('Content-Type', 'video/mp2t' if self.path.endswith('.ts') else 'application/vnd.apple.mpegurl')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                try: self.wfile.write(body)
+                except (BrokenPipeError, ConnectionResetError): pass
+        server = ThreadingHTTPServer(('127.0.0.1', 0), HlsFixture)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            run, env = self.auto_env('hls-real', real=True)
+            url = 'http://user:secret@127.0.0.1:%d/entry?token=private' % server.server_port
+            p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '--shared-input-auto', '-i', url], env=env, capture_output=True, timeout=20)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn(b'auto_fallback=non-ts', p.stderr)
+            self.assertIn(b'shared-input classification upstream_opens=1 upstream_requests=2', p.stderr)
+            self.assertNotIn(b'shared-input upstream_opens=', p.stderr)
+            self.assertTrue(any(path == '/hls/segment.ts' and auth == 'Basic dXNlcjpzZWNyZXQ=' for path, auth in requests))
+            output = run / 'output.ts'; output.write_bytes(p.stdout)
+            decoded = subprocess.run(['ffmpeg', '-v', 'error', '-xerror', '-i', str(output), '-map', '0:v', '-map', '0:a', '-f', 'null', '-'], capture_output=True)
+            self.assertEqual(decoded.returncode, 0, decoded.stderr)
+            for secret in (b'user:secret', b'token=private', b'/hls/opaque', b'127.0.0.1'):
+                self.assertNotIn(secret, p.stderr)
+        finally:
+            server.shutdown(); server.server_close()
+
     def test_real_audio_video_decode(self):
         fixture = self.base / 'real.ts'
         subprocess.run(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=160x120:rate=25', '-f', 'lavfi', '-i', 'sine=sample_rate=48000', '-t', '3', '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', '-f', 'mpegts', str(fixture)], check=True)
@@ -402,8 +549,8 @@ printf '%s' "$FFSMART_SHARED_INPUT"
         server = ThreadingHTTPServer(('127.0.0.1', 0), Fixture)
         threading.Thread(target=server.serve_forever, daemon=True).start()
         try:
-            run, env = self.setup_run('real', real=True)
-            p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '--shared-input', '-i', 'http://127.0.0.1:%d/fixture' % server.server_port], env=env, capture_output=True, timeout=15)
+            run, env = self.auto_env('real', real=True)
+            p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '--shared-input-auto', '-i', 'http://127.0.0.1:%d/fixture' % server.server_port], env=env, capture_output=True, timeout=15)
             self.assertEqual(p.returncode, 0, p.stderr)
             self.assertEqual(Fixture.requests, 1)
             output = run / 'output.ts'

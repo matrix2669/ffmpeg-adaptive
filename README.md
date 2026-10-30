@@ -160,26 +160,38 @@ request counts and peak retained bytes without URLs or credentials. These
 measure startup and queue behavior; they do not manage an ongoing time reservoir.
 
 For a mixed-source managed profile, `--shared-input-auto` (or
-`FFMPEG_SMART_SHARED_INPUT=auto`) selects the shared reader only for HTTP(S)
-URLs whose path ends in `.ts` or whose `format`/`output` query value is `ts` or
-`mpegts`. `.m3u8` paths, opaque URLs, other protocols, custom input-option tokens
-ambient protocol/all proxy variables and unavailable Python keep legacy
-handling. Auto conservatively bypasses shared acquisition whenever a proxy
-variable is nonempty, even with no_proxy, because direct helper HTTP semantics
-cannot establish transport equivalence. Path suffix and query matching is
-case-insensitive.
-These are URL hints, not body-type detection: a hinted URL that returns HLS or
-other non-TS data still fails without a second media open. Use explicit
-`--shared-input` for known TS URLs without those hints.
+`FFMPEG_SMART_SHARED_INPUT=auto`) inspects eligible direct HTTP(S) response bytes,
+including URLs without a `.ts` suffix or format query. The first 377 bytes must
+have MPEG-TS sync bytes at offsets 0, 188 and 376. MIME labels are not trusted:
+valid TS is retained and replayed from the same open response, even if its MIME
+type is missing or misleading. No separate detection request or prefill is used.
 
-Only continuous 188-byte MPEG-TS is supported. HLS, other HTTP media, files,
-stdin and other protocols keep their existing behavior when this option is off;
-explicit opt-in fails for unsupported input. After acquisition begins, failures
-never trigger a second media reader or a fallback open. At most five HTTP
-redirects are supported before the media response. Cross-origin redirects strip
-Basic Authorization; HTTPS downgrade and credentials in redirect URLs fail.
-`upstream_opens` counts accepted media responses (at most one), while
-`upstream_requests` includes redirect handshakes.
+Known `.m3u8` paths, other protocols, custom input-option tokens, ambient
+protocol/all proxy variables and unavailable Python keep legacy handling.
+Auto conservatively bypasses shared acquisition whenever a proxy variable is
+nonempty, even with no_proxy, because direct helper HTTP semantics cannot
+establish transport equivalence. Path suffix matching is case-insensitive.
+
+If Auto encounters a non-TS body (including an opaque HLS playlist), it closes
+that classification response before starting any probe or emitting media, then
+runs the existing FFmpeg path on the original source URL and environment.
+Relative playlist URLs, authentication and demuxing stay with FFmpeg. This
+compatibility fallback may open a non-TS source again; it never reopens validated
+TS. A short non-TS body or compressed response can also fall back. Network,
+HTTP-status, redirect-security, truncated-body and startup-deadline failures do
+not trigger fallback or retries. The same startup watchdog covers classification
+and the legacy child. `auto_fallback=non-ts` identifies this path, and its
+`shared-input classification` counters cover only the detection request, not
+subsequent legacy requests.
+
+Only continuous 188-byte MPEG-TS uses the shared broker. Explicit
+`--shared-input` remains strict and fails on unsupported input without fallback;
+Off retains the existing acquisition path without classification. After TS has
+been accepted, failures never trigger another media reader or fallback open.
+At most five HTTP redirects precede the media response. Cross-origin redirects
+strip Basic Authorization; HTTPS downgrade and credentials in redirect URLs
+fail. For shared TS, `upstream_opens` counts accepted media responses (at most
+one), while `upstream_requests` includes redirect handshakes.
 
 The dedicated `-user_agent` option and URL Basic authentication are supported.
 Owned FFprobe/FFmpeg broker clients clear inherited proxy settings and bypass
@@ -190,8 +202,8 @@ custom headers/cookies/authentication, rather than silently ignored. Python uses
 direct connections and system TLS trust; FFmpeg-specific proxy and transport
 semantics are not inherited. Other advanced phases, input add/replace policy,
 explicit `-vc`, independent audio normalization, cache requirements and the
-opt-in degraded proxy retain their existing policy. Compressed HTTP bodies,
-read failures, truncated bodies and timeouts fail clearly without reconnect.
+opt-in degraded proxy retain their existing policy. Strict shared input rejects compressed HTTP bodies. Read failures, truncated
+bodies and timeouts fail clearly without reconnect in both shared modes.
 
 This is an experimental source feature. Include `lib/ffsmart-shared-input.py`
 in installed packages and downstream checksum manifests. Production installation,

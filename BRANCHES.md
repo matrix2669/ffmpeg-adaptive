@@ -263,3 +263,18 @@ authoritative for live refs, commits, pull requests, and checks.
   TERM cancellation in both probe and playback fixtures completed within three
   seconds under 10/30-second guards with no live owned workers. ADR-020 closes
   syntax, defaults, timing evidence and transport boundaries.
+
+### `fix/opaque-ts-auto`
+
+- Created 2026-10-30 from owning `feature/shared-input-reservoir` at
+  `137103b0b5d2ed2f21976c65be2cd5bc816dbdb6`; dependent fix atop the existing
+  shared-input feature, to be integrated only with that dependency.
+- Scope: classify unhinted direct HTTP(S) response bodies on the retained reader,
+  preserve single-open TS and restore legacy handling for non-TS before output.
+- Excluded: source/profile changes, installation, releases and registry changes.
+- Validation: complete `./scripts/validate.sh` passed locally on 2026-10-30,
+  including all 20 shared-input methods with generated real audio/video,
+  authenticated redirected HLS fallback, opaque/mislabelled TS, strict/off/proxy
+  compatibility, same-connection replay and bounded cancellation/deadlines.
+  Exact checkpoint CI, independent review and live provider testing remain
+  separate gates; no installation or release is claimed.
