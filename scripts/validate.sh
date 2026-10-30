@@ -32,6 +32,7 @@ test_cases=(
     test-benchmark-integrity.sh
     test-pipe-replay.sh
     test-cli-contract.sh
+    test-shared-input.sh
 )
 for test_case in "${test_cases[@]}"; do
     "tests/$test_case"

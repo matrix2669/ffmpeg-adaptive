@@ -42,6 +42,8 @@ authority, date, and removal trigger.
   concurrent capacity, and selects visible GPUs.
 - `lib/ffsmart-probe.sh` handles URL and non-seekable input probing, adaptive
   metadata tiers, prefix replay, and credential-safe diagnostics.
+- `lib/ffsmart-shared-input.py` supervises the opt-in HTTP MPEG-TS RAM reader,
+  private probe/playback broker and bounded owned process cleanup (ADR-018).
 - `lib/ffsmart-policy.sh` makes independent video/audio decisions and builds the
   final FFmpeg command.
 - `benchmark-accel.sh` and `benchmark-live.sh` are operator-facing validation

@@ -25,6 +25,7 @@ authoritative for live refs, commits, pull requests, and checks.
 | `feature/dev-main-promotion-2026-10-20` | short-lived | prepared for integration | `dev@a818fee` | `dev`, then `main` | Document the authorized branch-only promotion of unchanged beta.4 code. |
 | `feature/stable-v0.1.0-2026-10-20` | feature | stable release preparation | `dev@3c560c1` | `dev`, then `main` | Publish approved 0.1.0 with unchanged behavior and inspected package/checksum. |
 | `fix/conditional-video-transcode` | short-lived fix | implemented; review pending | `dev@5ed3068` | `dev` | Preserve compatible video unless an active policy requires conversion. |
+| `feature/shared-input-reservoir` | short-lived feature | locally tested; review pending | `fix/conditional-video-transcode@81d8116` | `dev` | Experimental opt-in single HTTP(S) MPEG-TS reader with RAM prefix replay and bounded queue. |
 
 ## Branch records
 
@@ -211,3 +212,23 @@ authoritative for live refs, commits, pull requests, and checks.
 - Excluded: release/version changes, standards reconciliation, promotion,
   publication and deployment in this implementation batch. Downstream packaging
   and authorized live validation are coordinated separately.
+
+### `feature/shared-input-reservoir`
+
+- Created: 2026-10-30; base `81d811625e51e97c76f285267dc9c8d8ec885754`.
+- Scope: opt-in shared HTTP(S) continuous MPEG-TS startup input, bounded RAM
+  retention, probe/playback replay, credential-safe telemetry and focused tests.
+- Excluded: live-provider acquisition, downstream plugin, installation, release,
+  promotion and remote publication. Local checkpoint commit is authorized.
+- Validation: `./scripts/validate.sh` passed on 2026-10-30 with ShellCheck
+  0.11.0, Python 3.14.7 and FFmpeg/FFprobe 9.0.1. All 12 shared-input test
+  methods passed, including exact replay over a 64-KiB cap, all three probe tiers,
+  real audio/video decode, redirects/auth stripping and redirect limit, blocked
+  output/cancellation, short-read chunk overhead, EOF/read failures, concurrent
+  isolation, required-cache/degraded policy, mixed-URL auto selection and privacy.
+  CI now installs its real-media test dependencies explicitly; remote CI has not
+  run. No live/provider, production-Python or hardware result is claimed.
+- Decision closure: ADR-018 records exact interface/defaults, failure and
+  no-reconnect boundaries, ownership, transport limits and production review
+  triggers. Contradiction and chat-independence review completed before commit.
+  The existing conditional codec/audio/hardware/cache policy is preserved.

@@ -745,3 +745,105 @@ rebundle downstream code. Further runtime changes require their own test cycle.
 Exact version, artifact format, pin independence, licensing and publication
 scope are explicit; no runtime behavior or license decision is changed. CI and
 asset verification results belong in the release report and release notes.
+
+---
+
+# ADR-018: Share one HTTP MPEG-TS startup reader across probe and playback
+
+## Status and date
+
+Accepted experimental interface, 2026-10-30. Production rollout, performance
+acceptance and downstream default selection require separate validation.
+
+## Problem and decision
+
+Independent fast, expanded and default URL probes followed by playback can open
+several provider sessions and discard their startup media. Opt-in
+`--shared-input` or `FFMPEG_SMART_SHARED_INPUT=true` runs one Python stdlib HTTP(S)
+reader. Every metadata tier starts at byte zero of the same RAM-retained input;
+final FFmpeg receives that exact prefix and the continuation without gaps.
+The first 377 bytes must contain sync bytes at offsets 0, 188 and 376. This
+interface supports continuous 188-byte MPEG-TS only. No fixed prefill timer is
+introduced. Python 3.9+ is required only when enabled.
+
+The standalone default is false. `--shared-input-auto` or environment value
+`auto` is a compatibility selector: use shared input only for HTTP(S) path suffix
+`.ts` or query keys `format`/`output` with values `ts`/`mpegts`, case-insensitive,
+excluding `.m3u8` paths. Any advanced input-option token or missing Python keeps
+legacy handling. This checks URL hints only; it never acquires a body to decide.
+A hinted non-TS response fails without fallback. This makes a mixed-source
+profile possible without treating every HTTP response as MPEG-TS. Unhinted
+known TS sources require explicit opt-in. The helper owns a random-token
+loopback HTTP broker and a process group containing the existing wrapper, probes and final
+FFmpeg. Source URLs, credentials and broker tokens never enter telemetry.
+Broker probe routes replay without freeing bytes; its sole playback route frees
+chunks after writing them to FFmpeg. Queue saturation blocks upstream reading.
+No media is dropped, spooled to disk or reacquired. Input EOF after validated TS
+can be a normal finite fixture; premature Content-Length EOF, socket failure,
+unsupported format and timeout fail the session. There is no legacy fallback
+after acquisition. Existing copy/transcode, explicit codec, audio, hardware,
+cache and opt-in degraded-proxy policy remains owned by the existing modules.
+A degraded proxy uses the same broker when shared input was requested.
+
+## Defaults, bounds and transport contract
+
+- `FFMPEG_SMART_SHARED_INPUT_BYTES`: 16777216 retained payload bytes (16 MiB),
+  allowed 65536..1073741824. This bounds queue payload, not total process RSS or
+  OS socket/pipe buffers. Reader, per-client and output forwarding chunks are
+  at most 65536 bytes each, with at most a 376-byte validation prefix. Short
+  reads coalesce into chunks immediately, bounding per-chunk object overhead
+  without waiting for a full chunk.
+- `FFMPEG_SMART_SHARED_INPUT_DEADLINE`: 20 seconds from supervisor start to
+  first successful stdout media write; allowed 1..300. Probe starvation at a
+  small cap fails at this deadline rather than reopening the source.
+- `FFMPEG_SMART_SHARED_INPUT_IDLE`: 30 seconds per blocking network operation,
+  allowed 1..300. Cancellation shuts down the owned upstream socket, terminates
+  the child process group, gives it 0.5 seconds, then kills remaining members.
+- At most five redirects precede the single accepted status-200 media body.
+  Cross-origin redirects strip URL Basic Authorization. Redirect credentials
+  and HTTPS-to-HTTP downgrades are rejected. `upstream_opens` counts accepted
+  media bodies (zero or one); `upstream_requests` counts HTTP handshakes including
+  redirects. No HTTP error retry, body reconnect or restart occurs.
+- The dedicated user-agent and URL Basic authentication are supported. All
+  advanced input-option tokens are rejected before acquisition. This prevents
+  silently dropping cookies, headers, proxy, authentication, format or timeout
+  settings whose FFmpeg semantics the helper does not implement. Python uses
+  direct HTTP connections and system TLS trust; it does not inherit FFmpeg's
+  protocol implementation or environment proxy behavior. Compressed HTTP bodies
+  are rejected. Other phase options and input add/replace mode still apply to
+  FFmpeg's local broker input.
+- Explicitly enabling the option for HLS, non-TS HTTP, other protocols, files
+  or stdin fails clearly. Without opt-in, their existing paths remain intact.
+
+## Rationale, alternatives and scope
+
+A supervisor with a private broker preserves existing adaptive metadata parsing
+and codec policy while owning cleanup independently of shell exec/pipelines.
+Independent provider requests waste media and cannot guarantee continuity.
+A disk spool violates the RAM requirement. Remuxing upstream through a separate
+FFmpeg reader would change the original byte stream. A fixed prefill delays
+startup and does not ensure useful metadata. HLS acquisition, ongoing media-time
+reservoir management and downstream playback buffering are separate work.
+The existing downstream bridge reservoir is unchanged.
+
+## Evidence, closure and review triggers
+
+The operator requested shared probe/playback acquisition, fast startup and an
+explicitly bounded initial TS implementation on 2026-10-30. Scope, opt-in
+compatibility, no silent option loss, no reopen, privacy and cleanup choices
+close the interface for local implementation. Defaults are conservative
+experimental choices; tune only after measured startup/output and memory data
+on representative streams. Telemetry records first source byte, per-tier broker
+request starts, first playback feed, first stdout media, peak retained payload
+and request/session counts; it is wall-clock startup evidence, not a retained
+media-duration claim. The source helper must be included in any immutable
+runtime package and downstream per-file checksum manifest. A source checkpoint
+is not a downstream pin, installation, default-profile change or release.
+
+Required local tests cover exact prefix replay through all tiers and playback,
+one direct-source request, redirect auth boundaries, bounded backpressure,
+EOF/read failures, cancellation, concurrent isolation, credential-safe output,
+real audio/video decode and unchanged policy regressions. Live provider,
+hardware and production performance evidence are separate gates. Review this
+ADR before supporting arbitrary input options, HLS, proxy behavior, retry,
+additional TS packet sizes, non-POSIX platforms or default enablement.

@@ -136,3 +136,13 @@ The current tree is offered under MIT by its stated copyright owner because it
 contains the independently authored implementation, tests, and documentation
 within the new repository boundary. The upstream project's open MIT pull
 request remains unmerged and is not relied upon as permission.
+
+### 2026-10-30 experimental shared input
+
+`lib/ffsmart-shared-input.py`, its shell integration and local fixture tests were
+independently authored for this repository from the operator's behavior contract
+and the existing project's module interfaces. Python standard-library HTTP,
+threading and process interfaces are used; no implementation donor or external
+runtime package was copied. Earlier user-owned single-reader prototype results
+informed the no-fixed-prefill requirement only; its implementation was not
+imported. Existing MIT licensing and release-specific overlap gates are unchanged.

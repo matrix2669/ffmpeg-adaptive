@@ -62,3 +62,20 @@ plugin dev CI `35631991578`, and registry CI `35633913052` passed. The
 managed beta.5 installation preserved settings and offered no update. The
 final snapshot had zero viewers, zero input/output transcodes, no FFmpeg or
 FFprobe processes, and an unchanged settings digest.
+
+### Experimental shared-input runtime contract (2026-10-30)
+
+`--shared-input` additionally requires Python 3.9+ with the standard library,
+POSIX process groups and an available private IPv4 loopback listener. Its helper
+is `lib/ffsmart-shared-input.py`; include it in installable archives and every
+downstream immutable per-file checksum manifest alongside the Bash modules.
+The feature is off by default. `--shared-input-auto` uses conservative URL hints
+and bypasses optimization when Python or supported input conditions are absent.
+Python direct HTTP(S), system TLS trust, user-agent and URL Basic authentication are the supported transport contract;
+advanced FFmpeg input options are rejected rather than ignored. Five bounded
+redirects are allowed, without cross-origin Authorization or HTTPS downgrade.
+Only one successful MPEG-TS media body is consumed; reconnect is forbidden.
+Local validation uses generated media and fixture servers. It does not establish
+production Python/FFmpeg compatibility or live startup performance; see ADR-018.
+The complete development validation suite now requires Python 3.9+ and loopback
+network permission to execute these deterministic local fixture tests.

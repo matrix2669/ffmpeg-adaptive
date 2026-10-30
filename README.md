@@ -110,6 +110,69 @@ preserved when the selected path supports it, while `-sdr` explicitly requests
 an SDR transcode. The removed `-hdr`, `-10bit`, `-deinterlace`, and
 `-maxbitrate` spellings are rejected; use `-sdr`, `-deint`, and `-maxbr`.
 
+## Experimental shared HTTP MPEG-TS input
+
+For a known continuous HTTP(S) MPEG-TS source, opt into a single shared startup
+reader so fast, expanded and default probing and final playback consume the
+same incoming connection and retained opening bytes:
+
+```bash
+./ffmpeg-smart.sh --shared-input -i INPUT_URL > output.ts
+```
+
+`FFMPEG_SMART_SHARED_INPUT=true` enables the same behavior for managed callers.
+It is **off by default** and requires Python 3.9+ plus private IPv4 loopback
+access. No fixed prefill delay is added. One reader retains the original bytes
+in RAM, replays byte zero to each probe, then delivers the exact prefix and
+continuation to FFmpeg. Once playback consumes chunks, they are released. A
+full queue applies backpressure; media is never dropped or spooled to disk.
+
+| Environment setting | Default | Allowed values |
+|---|---|---|
+| `FFMPEG_SMART_SHARED_INPUT_BYTES` | 16777216 (16 MiB) | 65536..1073741824 retained payload bytes |
+| `FFMPEG_SMART_SHARED_INPUT_DEADLINE` | 20 | 1..300 seconds until the first stdout media write |
+| `FFMPEG_SMART_SHARED_INPUT_IDLE` | 30 | 1..300 seconds per blocking network operation |
+
+The byte cap covers retained payload, with additional bounded read/write chunks
+and OS buffers; it is not a process RSS limit or a media-duration target. Too
+small a cap can starve a probe and fail the startup deadline. Telemetry on stderr
+reports first source byte, per-tier request starts, playback feed, first output,
+request counts and peak retained bytes without URLs or credentials. These
+measure startup and queue behavior; they do not manage an ongoing time reservoir.
+
+For a mixed-source managed profile, `--shared-input-auto` (or
+`FFMPEG_SMART_SHARED_INPUT=auto`) selects the shared reader only for HTTP(S)
+URLs whose path ends in `.ts` or whose `format`/`output` query value is `ts` or
+`mpegts`. `.m3u8` paths, opaque URLs, other protocols, custom input-option tokens
+and unavailable Python keep legacy handling. Path suffix and query matching is
+case-insensitive.
+These are URL hints, not body-type detection: a hinted URL that returns HLS or
+other non-TS data still fails without a second media open. Use explicit
+`--shared-input` for known TS URLs without those hints.
+
+Only continuous 188-byte MPEG-TS is supported. HLS, other HTTP media, files,
+stdin and other protocols keep their existing behavior when this option is off;
+explicit opt-in fails for unsupported input. After acquisition begins, failures
+never trigger a second media reader or a fallback open. At most five HTTP
+redirects are supported before the media response. Cross-origin redirects strip
+Basic Authorization; HTTPS downgrade and credentials in redirect URLs fail.
+`upstream_opens` counts accepted media responses (at most one), while
+`upstream_requests` includes redirect handshakes.
+
+The dedicated `-user_agent` option and URL Basic authentication are supported.
+All `-ffmpeg-input-option` arguments are rejected before acquisition, including
+custom headers/cookies/authentication, rather than silently ignored. Python uses
+direct connections and system TLS trust; FFmpeg-specific proxy and transport
+semantics are not inherited. Other advanced phases, input add/replace policy,
+explicit `-vc`, independent audio normalization, cache requirements and the
+opt-in degraded proxy retain their existing policy. Compressed HTTP bodies,
+read failures, truncated bodies and timeouts fail clearly without reconnect.
+
+This is an experimental source feature. Include `lib/ffsmart-shared-input.py`
+in installed packages and downstream checksum manifests. Production installation,
+live startup comparisons and any default-profile rollout require separate tests.
+The downstream playback reservoir is separate and unchanged.
+
 ## State and managed integrations
 
 Standalone use stores state beside the script. Replaceable installations
