@@ -242,3 +242,11 @@ authoritative for live refs, commits, pull requests, and checks.
   explicit `-vc` precedence. ADR-019 records exact defaults/syntax/ownership;
   contradiction and chat-independence review completed. Universal defaults
   remain unchanged. Exact new-source CI remains a separate gate.
+
+- Review repair: isolate private broker clients from inherited proxy variables;
+  add a recording-proxy regression with no initial bypass setting. Shared-input
+  upstream remains explicitly direct. Full `./scripts/validate.sh` passed,
+  including all 13 shared-input methods; exact replay succeeded with HTTP/HTTPS/
+  ALL/FTP/SOCKS proxies present, one upstream request, zero proxy requests and
+  no broker-token diagnostics. ADR-018 records the scoped child-environment
+  boundary. No legacy acquisition environment is changed.

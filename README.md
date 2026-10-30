@@ -175,6 +175,9 @@ Basic Authorization; HTTPS downgrade and credentials in redirect URLs fail.
 `upstream_requests` includes redirect handshakes.
 
 The dedicated `-user_agent` option and URL Basic authentication are supported.
+Owned FFprobe/FFmpeg broker clients clear inherited proxy settings and bypass
+proxies for loopback, keeping the private broker URL/token inside the session.
+This applies only after shared input is explicitly selected.
 All `-ffmpeg-input-option` arguments are rejected before acquisition, including
 custom headers/cookies/authentication, rather than silently ignored. Python uses
 direct connections and system TLS trust; FFmpeg-specific proxy and transport

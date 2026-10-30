@@ -910,3 +910,18 @@ a separate acceptance step. Review defaults or allowed fallback encoders only
 with new compatibility requirements and canonical encoder support. Decision
 closure resolves defaults, syntax, precedence, scope and ownership; no profile,
 default, installation or publication change is inferred.
+
+
+## ADR-018 review clarification: private broker proxy isolation (2026-10-30)
+
+The owned wrapper/FFprobe/FFmpeg child environment removes inherited HTTP,
+HTTPS, ALL, FTP, SOCKS and bypass proxy variables case-insensitively, then sets
+both `no_proxy` and `NO_PROXY` to `127.0.0.1,localhost,::1`. These children use
+the private token-bearing loopback broker; forwarding that URL through an
+ambient proxy would disclose its token and break replay before upstream opens.
+Only the owned child environment changes. The helper's upstream HTTP client
+remains explicitly direct, and unselected legacy acquisition retains its
+existing environment/transport semantics. A local recording-proxy regression
+starts without any `no_proxy`, sets both cases of the protocol proxy variables,
+and requires all-tier replay, exact playback bytes, one upstream request and
+zero proxy requests or token-bearing diagnostics.

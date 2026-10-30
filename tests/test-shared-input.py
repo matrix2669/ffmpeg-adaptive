@@ -156,6 +156,41 @@ else:
         self.assertEqual(p.returncode, 64)
         self.assertEqual(len(self.requests), before)
 
+    def test_private_broker_bypasses_inherited_proxies_without_initial_no_proxy(self):
+        requests = []
+        class RecordingProxy(BaseHTTPRequestHandler):
+            def log_message(self, *_args): pass
+            def do_GET(self):
+                requests.append(self.path)
+                self.send_error(502)
+            def do_CONNECT(self):
+                requests.append(self.path)
+                self.send_error(502)
+        proxy = ThreadingHTTPServer(('127.0.0.1', 0), RecordingProxy)
+        threading.Thread(target=proxy.serve_forever, daemon=True).start()
+        try:
+            run, env = self.setup_run('proxy-isolation')
+            for key in list(env):
+                if key.lower() == 'no_proxy': del env[key]
+            address = 'http://127.0.0.1:%d' % proxy.server_port
+            for key in ('http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'all_proxy', 'ALL_PROXY', 'ftp_proxy', 'FTP_PROXY', 'socks_proxy', 'SOCKS_PROXY'):
+                env[key] = address
+            before = len(self.requests)
+            p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '--shared-input', '-i', self.url + '/ok?private=source-token'], env=env, capture_output=True, timeout=12)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(p.stdout, PACKETS)
+            self.assertEqual(len(self.requests) - before, 1)
+            self.assertEqual(requests, [])
+            self.assertIn(b'probe_requests=3', p.stderr)
+            self.assertIn(b'upstream_opens=1 upstream_requests=1', p.stderr)
+            args = (run / 'args').read_text().splitlines()
+            broker_token = args[args.index('-i') + 1].split('/')[-2]
+            self.assertNotIn(broker_token.encode(), p.stderr)
+            self.assertNotIn(b'source-token', p.stderr)
+        finally:
+            proxy.shutdown()
+            proxy.server_close()
+
     def test_auto_selection_mixed_urls_and_custom_input(self):
         script = '''source "$1/lib/ffsmart-common.sh"
 source "$1/lib/ffsmart-cli.sh"
