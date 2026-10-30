@@ -101,6 +101,21 @@ an encoding backend and does not itself require conversion. Audio normalization
 is independent: non-AAC audio or a channel-limit violation can convert while
 video copies. `-maxbr` requires conversion when the video bitrate is unknown.
 
+A profile can define its receiver's accepted copy codecs and conversion target:
+`--copy-codecs h264,mpeg2video --fallback-codec h264` preserves H.264/MPEG-2
+when other active constraints are satisfied and converts unsupported video to
+H.264. Required resize, bitrate, deinterlace or SDR work uses that fallback
+regardless of the cached codec. The universal defaults remain `h264,hevc` for
+copy and the cached conversion preference. `--copy-codecs` takes a nonempty
+comma-separated list of FFprobe codec names without spaces. `--fallback-codec`
+is optional and accepts `h264` or `hevc`.
+
+Explicit `-vc h264|hevc` overrides both the copy list and fallback: it can force
+conversion of an allowed codec or explicitly preserve another codec outside
+the list. These controls govern video codec membership; audio, HDR and hardware
+policy retain their existing controls. The operator must choose codecs the
+receiver and MPEG-TS output support.
+
 The environment variables `DRI_DEVICE`, `QSV_DEVICE`, and `VAAPI_DEVICE`
 provide the same device controls. Explicit command-line values take
 precedence.

@@ -847,3 +847,66 @@ real audio/video decode and unchanged policy regressions. Live provider,
 hardware and production performance evidence are separate gates. Review this
 ADR before supporting arbitrary input options, HLS, proxy behavior, retry,
 additional TS packet sizes, non-POSIX platforms or default enablement.
+
+---
+
+# ADR-019: Configure video-copy compatibility separately from conversion preference
+
+## Status, date and authority
+
+Accepted, 2026-10-30. The operator requested configurable receiver compatibility
+while explicitly retaining the script and plugin as universal products. Extends
+ADR-007 with general policy controls; existing defaults remain unchanged.
+
+## Decision
+
+`--copy-codecs LIST` is a nonempty comma-separated list of FFprobe video codec
+names, restricted to lowercase ASCII letters, digits and underscores per name,
+without spaces or empty elements. CLI values are lowercased. The default is
+`h264,hevc`. Listed source codecs are eligible for automatic copy only when all
+other active video constraints are satisfied. Listing a codec does not guarantee
+that a receiver or MPEG-TS supports it; FFmpeg remains the mux authority.
+
+`--fallback-codec h264|hevc` optionally selects the conversion codec, independently
+of that copy set. Omission retains the cached preference (H.264 if absent).
+Unsupported/unknown codecs outside the copy set require conversion. Any required
+resolution, bitrate, deinterlace or SDR conversion targets the explicit fallback
+when provided, regardless of cached codec preference. For example,
+`--copy-codecs h264,mpeg2video --fallback-codec h264` preserves compatible H.264
+and MPEG-2 while converting HEVC or deinterlaced/resized MPEG-2 to H.264.
+
+Explicit `-vc h264|hevc` takes priority over both list membership and fallback:
+require that exact codec and use it when another constraint requires conversion.
+Thus MPEG-2 plus explicit `-vc h264` converts even if MPEG-2 is listed, and HEVC
+plus explicit `-vc hevc` can copy even if HEVC is not listed. This deliberate
+operator override preserves the existing codec contract. Audio stays independent.
+These options govern video codec membership, not HDR, profile/level, audio or
+universal receiver capabilities. No receiver-specific mode is introduced.
+
+## Rationale and alternatives
+
+Copy eligibility describes receiver/container compatibility; cached encoder
+preference describes measured performance. Separate controls let each deployment
+express its accepted codec set and fallback without changing other users.
+Receiver-specific named presets would make a universal tool depend on one
+system. Always forcing one codec would discard otherwise compatible inputs.
+Ignoring explicit `-vc` would break an accepted user contract. Inferring copy
+eligibility from benchmark preference would repeat the earlier ownership error.
+
+## Consequences, evidence and review
+
+No hardware selection/capacity, cache schema/fingerprint/version, audio policy,
+shared-input transport, mux or output destination changes. Canonical source
+remains the sole behavior owner. Plugin integration may expose general per-Stream
+copy-list and fallback fields with unchanged defaults. The operator may select
+H.264/MPEG-2 plus H.264 fallback for a local profile during separately authorized
+deployment. Output Profiles stay unchanged unless explicit options request it.
+
+Tests cover both cached codec preferences, configured H.264/MPEG-2 copy,
+unsupported HEVC conversion, MPEG-2 deinterlace conversion, resolution/bitrate/
+SDR conversion, independent list/fallback choices, validation and explicit codec
+precedence. Existing standard tests continue to pass. Live receiver evidence is
+a separate acceptance step. Review defaults or allowed fallback encoders only
+with new compatibility requirements and canonical encoder support. Decision
+closure resolves defaults, syntax, precedence, scope and ownership; no profile,
+default, installation or publication change is inferred.

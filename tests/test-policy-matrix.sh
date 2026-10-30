@@ -16,6 +16,7 @@ codec=h264; width=1920; height=1080; pix=yuv420p; field=progressive; bitrate=400
 case "$FFMPEG_SMART_TEST_MEDIA" in
   hevc) codec=hevc ;;
   mpeg2) codec=mpeg2video ;;
+  mpeg2interlaced) codec=mpeg2video; field=tt ;;
   unknowncodec) codec=unknown ;;
   low) width=640; height=360; bitrate=700000 ;;
   highbitrate) bitrate=9000000 ;;
@@ -177,6 +178,65 @@ for preferred in h264 hevc; do
         run_case "$name" "$requested" -vc "$requested" -maxres 720
         assert_option "$name" -c:v "$explicit_encoder"
     done
+
+    # A consumer may configure its copy set and fallback independently of cache.
+    name="list-only-$preferred-mpeg2-copy"
+    run_case "$name" mpeg2 --copy-codecs h264,mpeg2video
+    assert_video_copy "$name"
+    name="list-only-$preferred-hevc-convert"
+    run_case "$name" hevc --copy-codecs h264,mpeg2video
+    assert_option "$name" -c:v "$encoder"
+    name="list-only-$preferred-mpeg2-scale"
+    run_case "$name" mpeg2 --copy-codecs h264,mpeg2video -maxres 720
+    assert_option "$name" -c:v "$encoder"
+    name="fallback-only-$preferred-hevc-copy"
+    run_case "$name" hevc --fallback-codec h264
+    assert_video_copy "$name"
+    name="fallback-only-$preferred-mpeg2-convert"
+    run_case "$name" mpeg2 --fallback-codec h264
+    assert_option "$name" -c:v libx264
+    for media in h264 mpeg2; do
+        name="configured-$preferred-$media-copy"
+        run_case "$name" "$media" --copy-codecs h264,mpeg2video --fallback-codec h264 -deint
+        assert_video_copy "$name"
+        assert_option "$name" -c:a copy
+    done
+    for media in hevc unknowncodec; do
+        name="configured-$preferred-$media-convert"
+        run_case "$name" "$media" --copy-codecs h264,mpeg2video --fallback-codec h264
+        assert_option "$name" -c:v libx264
+    done
+    name="configured-$preferred-mpeg2-deint"
+    run_case "$name" mpeg2interlaced --copy-codecs h264,mpeg2video --fallback-codec h264 -deint
+    assert_option "$name" -c:v libx264
+    grep -Fq 'bwdif=' "$test_dir/$name.args"
+    for media in h264 mpeg2; do
+        name="configured-$preferred-$media-scale"
+        run_case "$name" "$media" --copy-codecs h264,mpeg2video --fallback-codec h264 -maxres 720
+        assert_option "$name" -c:v libx264
+        grep -Fq 'scale=1280:720' "$test_dir/$name.args"
+    done
+    for media in highbitrate unknownbitrate; do
+        name="configured-$preferred-$media-limit"
+        run_case "$name" "$media" --copy-codecs h264,mpeg2video --fallback-codec h264 -maxbr 2M
+        assert_option "$name" -c:v libx264
+    done
+    name="configured-$preferred-hdr-sdr"
+    run_case "$name" hdr10 --copy-codecs h264,mpeg2video --fallback-codec h264 -sdr
+    assert_option "$name" -c:v libx264
+    grep -Fq 'tonemap=' "$test_dir/$name.args"
+    name="configured-$preferred-explicit-hevc-copy"
+    run_case "$name" hevc --copy-codecs h264,mpeg2video --fallback-codec h264 -vc hevc
+    assert_video_copy "$name"
+    name="configured-$preferred-explicit-hevc-convert"
+    run_case "$name" mpeg2 --copy-codecs h264,mpeg2video --fallback-codec h264 -vc hevc
+    assert_option "$name" -c:v libx265
+    name="configured-$preferred-explicit-hevc-scale"
+    run_case "$name" h264 --copy-codecs h264,mpeg2video --fallback-codec h264 -vc hevc -maxres 720
+    assert_option "$name" -c:v libx265
+    name="configured-$preferred-explicit-h264-mpeg2"
+    run_case "$name" mpeg2 --copy-codecs h264,mpeg2video --fallback-codec h264 -vc h264
+    assert_option "$name" -c:v libx264
 done
 
 # Mirror the live regression: cached VAAPI/HEVC, progressive H.264, -deint.

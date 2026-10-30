@@ -19,4 +19,19 @@ done
 "$wrapper" --help -sdr -deint -maxbr 2M > "$test_dir/canonical.log"
 grep -Fq 'Usage: ffmpeg-smart.sh' "$test_dir/canonical.log"
 
+for invalid in 'h264,' 'h264,,hevc' 'h264;touch_bad' 'h264, hevc' ''; do
+    set +e
+    "$wrapper" -i input.ts --copy-codecs "$invalid" > "$test_dir/copy-codecs.log" 2>&1
+    status=$?
+    set -e
+    [[ "$status" -eq 64 ]]
+    grep -Fq -- '--copy-codecs requires' "$test_dir/copy-codecs.log"
+done
+set +e
+"$wrapper" -i input.ts --fallback-codec unsupported > "$test_dir/fallback.log" 2>&1
+status=$?
+set -e
+[[ "$status" -eq 64 ]]
+grep -Fq -- '--fallback-codec must be h264 or hevc' "$test_dir/fallback.log"
+
 echo 'Canonical policy option and removed-alias tests passed'

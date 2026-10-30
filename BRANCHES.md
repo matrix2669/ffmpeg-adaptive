@@ -218,6 +218,8 @@ authoritative for live refs, commits, pull requests, and checks.
 - Created: 2026-10-30; base `81d811625e51e97c76f285267dc9c8d8ec885754`.
 - Scope: opt-in shared HTTP(S) continuous MPEG-TS startup input, bounded RAM
   retention, probe/playback replay, credential-safe telemetry and focused tests.
+  The 2026-10-30 follow-up adds generic copy-codec allowlist and fallback-codec
+  controls, preserving universal defaults and explicit codec precedence.
 - Excluded: live-provider acquisition, downstream plugin, installation, release,
   promotion and remote publication. Local checkpoint commit is authorized.
 - Validation: `./scripts/validate.sh` passed on 2026-10-30 with ShellCheck
@@ -226,9 +228,17 @@ authoritative for live refs, commits, pull requests, and checks.
   real audio/video decode, redirects/auth stripping and redirect limit, blocked
   output/cancellation, short-read chunk overhead, EOF/read failures, concurrent
   isolation, required-cache/degraded policy, mixed-URL auto selection and privacy.
-  CI now installs its real-media test dependencies explicitly; remote CI has not
-  run. No live/provider, production-Python or hardware result is claimed.
+  CI installs its real-media test dependencies explicitly; exact source
+  `6e0a84b` passed full CI run `41076177782`. No live/provider or hardware
+  result is claimed by this local checkpoint.
 - Decision closure: ADR-018 records exact interface/defaults, failure and
   no-reconnect boundaries, ownership, transport limits and production review
   triggers. Contradiction and chat-independence review completed before commit.
   The existing conditional codec/audio/hardware/cache policy is preserved.
+
+- Configurable video-policy validation: full `./scripts/validate.sh` passed on
+  2026-10-30, including both cache preferences, configurable list-only and
+  fallback-only behavior, MPEG-2 deinterlace/resize, bitrate/SDR constraints and
+  explicit `-vc` precedence. ADR-019 records exact defaults/syntax/ownership;
+  contradiction and chat-independence review completed. Universal defaults
+  remain unchanged. Exact new-source CI remains a separate gate.

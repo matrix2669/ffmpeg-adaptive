@@ -146,3 +146,10 @@ threading and process interfaces are used; no implementation donor or external
 runtime package was copied. Earlier user-owned single-reader prototype results
 informed the no-fixed-prefill requirement only; its implementation was not
 imported. Existing MIT licensing and release-specific overlap gates are unchanged.
+
+### 2026-10-30 configurable video codec policy
+
+The generic copy-codec allowlist, optional fallback target and precedence tests
+were independently authored from the operator's direct requirement and existing
+policy architecture. No external implementation donor was used. The change
+preserves universal defaults, explicit codec precedence and existing licensing.
