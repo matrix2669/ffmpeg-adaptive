@@ -179,6 +179,26 @@ for preferred in h264 hevc; do
         assert_option "$name" -c:v "$explicit_encoder"
     done
 
+    name="preferred-$preferred-copy"
+    run_case "$name" "$preferred" --copy-codecs preferred
+    assert_video_copy "$name"
+    if [[ "$preferred" == hevc ]]; then other=h264; else other=hevc; fi
+    name="preferred-$preferred-other"
+    run_case "$name" "$other" --copy-codecs preferred
+    assert_option "$name" -c:v "$encoder"
+    name="preferred-$preferred-scale"
+    run_case "$name" "$preferred" --copy-codecs preferred -maxres 720
+    assert_option "$name" -c:v "$encoder"
+    name="preferred-$preferred-deint"
+    run_case "$name" interlaced --copy-codecs preferred -deint
+    assert_option "$name" -c:v "$encoder"
+    name="preferred-$preferred-explicit-copy"
+    run_case "$name" "$other" --copy-codecs preferred -vc "$other"
+    assert_video_copy "$name"
+    name="alias-$preferred-mpeg2"
+    run_case "$name" mpeg2 --copy-codecs ' H264, MPEG2 '
+    assert_video_copy "$name"
+
     # A consumer may configure its copy set and fallback independently of cache.
     name="list-only-$preferred-mpeg2-copy"
     run_case "$name" mpeg2 --copy-codecs h264,mpeg2video
@@ -238,6 +258,16 @@ for preferred in h264 hevc; do
     run_case "$name" mpeg2 --copy-codecs h264,mpeg2video --fallback-codec h264 -vc h264
     assert_option "$name" -c:v libx264
 done
+
+PATH="$fake_bin:$PATH" FFMPEG_SMART_STATE_DIR="$state_dir" \
+    test_write_valid_cache "$repo_dir" "$state_dir" software av1
+if run_case invalid-preferred-cache h264 --copy-codecs preferred; then
+    echo 'Unsupported cache preference must fail preferred selection' >&2; exit 1
+else
+    [[ "$?" -eq 78 ]]
+fi
+grep -Fq 'ERROR [preferred-codec]' "$test_dir/invalid-preferred-cache.log"
+[[ ! -f "$test_dir/invalid-preferred-cache.args" ]]
 
 # Mirror the live regression: cached VAAPI/HEVC, progressive H.264, -deint.
 PATH="$fake_bin:$PATH" FFMPEG_SMART_STATE_DIR="$state_dir" \

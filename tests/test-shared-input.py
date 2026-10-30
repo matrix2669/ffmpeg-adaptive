@@ -214,22 +214,43 @@ printf '%s' "$FFSMART_SHARED_INPUT"
         ]
         for url, extra, expected in cases:
             with self.subTest(url=url):
-                p = subprocess.run(['bash', '-c', script, 'test', str(ROOT), '--shared-input-auto', '-i', url, *extra], capture_output=True)
+                clean_env = {k: v for k, v in os.environ.items() if k.lower() not in ('http_proxy', 'https_proxy', 'all_proxy', 'ftp_proxy', 'socks_proxy')}
+                p = subprocess.run(['bash', '-c', script, 'test', str(ROOT), '--shared-input-auto', '-i', url, *extra], env=clean_env, capture_output=True)
                 self.assertEqual(p.returncode, 0, p.stderr)
                 self.assertEqual(p.stdout.decode(), expected)
                 self.assertEqual(p.stderr, b'')
         run, env = self.setup_run('auto-hint')
+        for key in list(env):
+            if key.lower() in ('http_proxy', 'https_proxy', 'all_proxy', 'ftp_proxy', 'socks_proxy'): del env[key]
         env['FFMPEG_SMART_SHARED_INPUT'] = 'auto'
         p = subprocess.run([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + '/ok.ts'], env=env, capture_output=True, timeout=12)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(p.stdout, PACKETS)
         self.assertIn(b'upstream_opens=1 upstream_requests=1', p.stderr)
 
+    def test_auto_keeps_legacy_for_any_ambient_proxy(self):
+        script = '''source "$1/lib/ffsmart-common.sh"
+source "$1/lib/ffsmart-cli.sh"
+shift
+ffsmart_cli_defaults
+ffsmart_parse_cli "$@" || exit
+ffsmart_validate_cli || exit
+printf '%s' "$FFSMART_SHARED_INPUT"
+'''
+        for key in ('http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'all_proxy', 'ALL_PROXY', 'ftp_proxy', 'SOCKS_PROXY', 'HtTp_PrOxY'):
+            with self.subTest(key=key):
+                env = {k: v for k, v in os.environ.items() if not k.lower().endswith('_proxy')}
+                env.update({key: 'http://private:credential@proxy.invalid:8888', 'NO_PROXY': '*'})
+                p = subprocess.run(['bash', '-c', script, 'test', str(ROOT), '--shared-input-auto', '-i', 'https://source.invalid/live.ts'], env=env, capture_output=True)
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertEqual(p.stdout, b'false')
+                self.assertEqual(p.stderr, b'')
+
     def test_required_cache_and_degraded_policy(self):
         run, env = self.setup_run('missing-cache')
         (run / 'state/.capabilities.cache').unlink()
         before = len(self.requests)
-        command = [str(ROOT / 'ffmpeg-smart.sh'), '--shared-input', '-i', self.url + '/ok']
+        command = [str(ROOT / 'ffmpeg-smart.sh'), '--shared-input', '--copy-codecs', 'preferred', '-i', self.url + '/ok']
         p = subprocess.run(command, env=env, capture_output=True, timeout=12)
         self.assertEqual(p.returncode, 78, p.stderr)
         self.assertEqual(len(self.requests), before)
@@ -240,6 +261,17 @@ printf '%s' "$FFSMART_SHARED_INPUT"
         self.assertEqual(len(self.requests) - before, 1)
         self.assertIn(b'probe_requests=0', p.stderr)
         self.assertIn('-c\ncopy', (run / 'args').read_text())
+        (run / 'state/.capabilities.cache').write_text('invalid-cache\n')
+        env['FFMPEG_SMART_CACHE_FALLBACK'] = 'none'
+        before = len(self.requests)
+        p = subprocess.run(command, env=env, capture_output=True, timeout=12)
+        self.assertEqual(p.returncode, 78, p.stderr)
+        self.assertEqual(len(self.requests), before)
+        env['FFMPEG_SMART_CACHE_FALLBACK'] = 'proxy'
+        p = subprocess.run(command, env=env, capture_output=True, timeout=12)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(p.stdout, PACKETS)
+        self.assertEqual(len(self.requests) - before, 1)
 
     def test_early_eof_wrong_format_and_read_failure(self):
         for route in ('early', 'bad', 'truncated'):
@@ -319,19 +351,29 @@ printf '%s' "$FFSMART_SHARED_INPUT"
         _, p = self.execute('deadline', '/stall', FFMPEG_SMART_SHARED_INPUT_DEADLINE='1', FFMPEG_SMART_SHARED_INPUT_IDLE='2', TEST_PROBE_BYTES='1880')
         self.assertEqual(p.returncode, 65, p.stderr)
         self.assertIn(b'startup-deadline', p.stderr)
-        run, env = self.setup_run('cancel')
-        p = subprocess.Popen([str(ROOT / 'ffmpeg-smart.sh'), '--shared-input', '-i', self.url + '/stall'], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(.4)
-        processes = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,pgid=,stat='], text=True)
-        groups = {int(fields[2]) for line in processes.splitlines() if len(fields := line.split()) == 4 and int(fields[1]) == p.pid}
-        self.assertTrue(groups)
-        p.send_signal(signal.SIGTERM)
-        _, error = p.communicate(timeout=3)
-        self.assertEqual(p.returncode, 130, error)
-        # The complete owned child process group is killed, including stalled tools.
-        processes = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,pgid=,stat='], text=True)
-        self.assertFalse(any(int(fields[2]) in groups and not fields[3].startswith('Z')
-                             for line in processes.splitlines() if len(fields := line.split()) == 4))
+        for stage in ('probe', 'playback'):
+            run, env = self.setup_run('cancel-' + stage)
+            env.update(FFMPEG_SMART_SHARED_INPUT_DEADLINE='10', FFMPEG_SMART_SHARED_INPUT_IDLE='30')
+            if stage == 'probe': env['TEST_PROBE_BYTES'] = '1880'
+            p = subprocess.Popen([str(ROOT / 'ffmpeg-smart.sh'), '--shared-input', '-i', self.url + '/stall'], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if stage == 'playback':
+                until = time.monotonic() + 2
+                while not (run / 'args').exists() and time.monotonic() < until: time.sleep(.01)
+                self.assertTrue((run / 'args').exists())
+            else:
+                time.sleep(.4)
+            processes = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,pgid=,stat='], text=True)
+            groups = {int(fields[2]) for line in processes.splitlines() if len(fields := line.split()) == 4 and int(fields[1]) == p.pid}
+            self.assertTrue(groups)
+            cancelled_at = time.monotonic()
+            p.send_signal(signal.SIGTERM)
+            _, error = p.communicate(timeout=3)
+            self.assertLess(time.monotonic() - cancelled_at, 3)
+            self.assertEqual(p.returncode, 130, error)
+            # No owned worker stays alive while the network/startup guards run.
+            processes = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,pgid=,stat='], text=True)
+            self.assertFalse(any(int(fields[2]) in groups and not fields[3].startswith('Z')
+                                 for line in processes.splitlines() if len(fields := line.split()) == 4))
 
     def test_concurrent_isolation(self):
         before = len(self.requests)

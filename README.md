@@ -102,12 +102,16 @@ is independent: non-AAC audio or a channel-limit violation can convert while
 video copies. `-maxbr` requires conversion when the video bitrate is unknown.
 
 A profile can define its receiver's accepted copy codecs and conversion target:
-`--copy-codecs h264,mpeg2video --fallback-codec h264` preserves H.264/MPEG-2
+`--copy-codecs h264,mpeg2 --fallback-codec h264` preserves H.264/MPEG-2
 when other active constraints are satisfied and converts unsupported video to
 H.264. Required resize, bitrate, deinterlace or SDR work uses that fallback
 regardless of the cached codec. The universal defaults remain `h264,hevc` for
 copy and the cached conversion preference. `--copy-codecs` takes a nonempty
-comma-separated list of FFprobe codec names without spaces. `--fallback-codec`
+comma-separated list of codec names;
+case and surrounding/token whitespace are normalized. `mpeg2` is an alias for
+`mpeg2video`, and both are supported. `--copy-codecs preferred` selects only the
+current validated H.264/HEVC cache preference and cannot be mixed with names.
+`--fallback-codec`
 is optional and accepts `h264` or `hevc`.
 
 Explicit `-vc h264|hevc` overrides both the copy list and fallback: it can force
@@ -159,7 +163,10 @@ For a mixed-source managed profile, `--shared-input-auto` (or
 `FFMPEG_SMART_SHARED_INPUT=auto`) selects the shared reader only for HTTP(S)
 URLs whose path ends in `.ts` or whose `format`/`output` query value is `ts` or
 `mpegts`. `.m3u8` paths, opaque URLs, other protocols, custom input-option tokens
-and unavailable Python keep legacy handling. Path suffix and query matching is
+ambient protocol/all proxy variables and unavailable Python keep legacy
+handling. Auto conservatively bypasses shared acquisition whenever a proxy
+variable is nonempty, even with no_proxy, because direct helper HTTP semantics
+cannot establish transport equivalence. Path suffix and query matching is
 case-insensitive.
 These are URL hints, not body-type detection: a hinted URL that returns HLS or
 other non-TS data still fails without a second media open. Use explicit

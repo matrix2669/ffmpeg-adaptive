@@ -250,3 +250,16 @@ authoritative for live refs, commits, pull requests, and checks.
   ALL/FTP/SOCKS proxies present, one upstream request, zero proxy requests and
   no broker-token diagnostics. ADR-018 records the scoped child-environment
   boundary. No legacy acquisition environment is changed.
+
+- Beta.3 simplification follow-up (2026-10-30): add exclusive dynamic preferred-
+  cache copy selection and make conservative Auto preserve ambient proxy jobs.
+  Standalone defaults remain unchanged. Plugin integration fixes its own
+  payload/startup/internal-network bounds separately; no receiver-specific UI.
+  User selected a blank-default text field in the plugin; blank maps to
+  dynamic preferred-cache selection, explicit lists remain configurable. Full
+  `./scripts/validate.sh` passed, including both cache preferences, mpeg2 alias/
+  whitespace/case parsing, preferred exclusivity/filters/explicit -vc, cache
+  admission/degraded behavior, proxy-aware Auto and all 14 shared-input methods.
+  TERM cancellation in both probe and playback fixtures completed within three
+  seconds under 10/30-second guards with no live owned workers. ADR-020 closes
+  syntax, defaults, timing evidence and transport boundaries.

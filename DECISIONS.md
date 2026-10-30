@@ -925,3 +925,64 @@ existing environment/transport semantics. A local recording-proxy regression
 starts without any `no_proxy`, sets both cases of the protocol proxy variables,
 and requires all-tier replay, exact playback bytes, one upstream request and
 zero proxy requests or token-bearing diagnostics.
+
+---
+
+# ADR-020: Resolve preferred-copy policy dynamically and preserve proxy transport in Auto
+
+## Status and authority
+
+Accepted, 2026-10-30, for the beta.3 simplification requested by the operator.
+Extends ADR-019 and the Auto eligibility contract in ADR-018; standalone defaults
+and explicit shared-input Off/Strict behavior remain unchanged.
+
+## Copy selection
+
+`--copy-codecs preferred` is exclusive: it cannot be combined with named codecs.
+After normal cache admission, it uses the cache's current `h264` or `hevc`
+preference as the sole automatic-copy codec. A missing/invalid cache retains the
+existing required-cache failure or opt-in degraded-copy contract. An unsupported
+cache preference cannot become an arbitrary copy target; preferred policy fails
+with status 78. Explicit `-vc` still takes priority over the copy selection, and
+processing limits still require conversion. Conversion normally uses the cached
+encoder; the existing standalone `--fallback-codec` expert option remains valid.
+
+Named lists accept `mpeg2` as a public alias for FFprobe's `mpeg2video`; the old
+name remains supported. Trim surrounding/token whitespace and normalize case,
+rejecting empty tokens, malformed names and mixed preferred/named selections
+before acquisition. Standalone default remains `h264,hevc`. A plugin may map a
+blank text field to `preferred` without treating a missing value as a fixed codec.
+
+## Conservative automatic input
+
+Auto retains legacy acquisition whenever any nonempty HTTP, HTTPS, ALL, FTP or
+SOCKS proxy variable is present, case-insensitively, even if no_proxy appears to
+bypass the source. Direct helper HTTP semantics cannot prove equivalence to an
+ambient FFmpeg proxy configuration. Custom input options, HLS/opaque URL hints,
+unsupported protocols and unavailable Python retain their previous Auto gates.
+No body is opened to decide eligibility; proxy values and source URLs are not
+logged. Strict shared input remains an explicit direct-HTTP opt-in, and private
+broker clients keep their scoped proxy isolation.
+
+## Timing and cancellation boundary
+
+No standalone timeout default changes. The plugin may fix 64 MiB retained
+payload, a 10-second first-output watchdog and an independent 30-second network-
+operation guard. These are not injected Dispatcharr settings. Official 0.33.0
+may switch at its 8-second startup-no-data clock when alternatives exist, and
+disables that short clock when exhausted; the wrapper watchdog is still useful.
+The existing TERM/INT/HUP path shuts down the reader socket and terminates the
+owned worker process group with a 0.5-second grace. Local bounded tests cancel
+both probing and playback before the 10/30-second guards and require exit with
+no live workers within three seconds. This is worker-fixture evidence, not a
+claim that every parent/client/live-provider failure path has been proven.
+
+## Closure and review
+
+Defaults, aliases, precedence, failure semantics and proxy ownership are explicit.
+Tests cover both cache preferences, filters and explicit codecs, malformed/mixed
+lists, missing/invalid cache admission, case-insensitive proxy gating, exact media
+replay and bounded cancellation. No hardware/audio/cache-format, live operation,
+installation or publication change is inferred. Review Auto gates only with
+transport-equivalence evidence; do not trade legacy proxy behavior for automatic
+optimization based on a URL suffix alone.

@@ -79,3 +79,14 @@ Local validation uses generated media and fixture servers. It does not establish
 production Python/FFmpeg compatibility or live startup performance; see ADR-018.
 The complete development validation suite now requires Python 3.9+ and loopback
 network permission to execute these deterministic local fixture tests.
+
+
+### Beta.3 eligibility and preferred policy
+
+Auto now bypasses shared input when any case variant of HTTP/HTTPS/ALL/FTP/SOCKS
+proxy configuration is nonempty. No transport equivalence or Dispatcharr timeout
+inheritance is claimed. Preferred-copy selection resolves the current validated
+H.264/HEVC cache preference; it is never stored as a fixed deployment codec.
+Public `mpeg2` aliases `mpeg2video`, with normalized CSV whitespace/case. See
+ADR-020. Local fixture cancellation covers both probing and playback under the
+plugin's planned 10-second startup and 30-second internal network guards.

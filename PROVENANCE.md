@@ -153,3 +153,10 @@ The generic copy-codec allowlist, optional fallback target and precedence tests
 were independently authored from the operator's direct requirement and existing
 policy architecture. No external implementation donor was used. The change
 preserves universal defaults, explicit codec precedence and existing licensing.
+
+### 2026-10-30 beta.3 simplification
+
+Preferred-cache copy selection, codec alias/format normalization and conservative
+Auto proxy gating were independently authored from the operator's instructions
+and existing module contracts. Official Dispatcharr 0.33.0 source was read for
+field and cancellation/timing compatibility only; no implementation was copied.

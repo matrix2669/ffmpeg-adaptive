@@ -19,7 +19,7 @@ done
 "$wrapper" --help -sdr -deint -maxbr 2M > "$test_dir/canonical.log"
 grep -Fq 'Usage: ffmpeg-smart.sh' "$test_dir/canonical.log"
 
-for invalid in 'h264,' 'h264,,hevc' 'h264;touch_bad' 'h264, hevc' ''; do
+for invalid in 'h264,' 'h264,,hevc' 'h264;touch_bad' 'h2 64' '' 'preferred,h264' 'h264,preferred' 'preferred,preferred'; do
     set +e
     "$wrapper" -i input.ts --copy-codecs "$invalid" > "$test_dir/copy-codecs.log" 2>&1
     status=$?
