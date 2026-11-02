@@ -1071,3 +1071,52 @@ and ShellCheck 0.11.0 on 2026-10-30; all 20 shared-input methods passed. Local
 loopback fixture permission was required. No source provider, installed plugin,
 profile or cache was changed by this implementation batch. Exact CI, independent
 review and live startup evidence remain parent-owned gates.
+
+---
+
+# ADR-022: Close the accepted implementation through development integration
+
+## Status, date and authority
+
+Accepted, 2026-11-02. The owner requested completion of development integration
+for the feature changes already packaged by the plugin. This extends ADR-012's
+feature/fix-to-dev workflow; it does not authorize the later main/release stages.
+
+## Decision and rationale
+
+Integrate the complete dependent chain from stable dev baseline
+`5ed306892edfb27f25736eaf938edbd94ff5a8c0` through conditional-video
+`81d811625e51e97c76f285267dc9c8d8ec885754`, shared-input/preferred-policy
+`137103b0b5d2ed2f21976c65be2cd5bc816dbdb6`, and opaque-TS fix
+`bb834684eb2c513e832c43ba6dbc773d5af10cbc`, together with the reviewed delivery
+documentation. Packaging an immutable feature commit downstream is valid under
+ADR-011, but does not move the canonical dev branch. The canonical integration
+must therefore be completed and verified separately.
+
+This explicitly supersedes the initial no-promotion exclusions in those three
+branch records only for this dev integration. It leaves ADR-007 and ADR-018–021
+behavior intact: standalone shared input remains off by default, copy defaults
+remain `h264,hevc`, explicit codec precedence and independent audio remain,
+and the plugin owns its distinct preferred-copy/Auto policy. No receiver preset,
+cache schema/fingerprint change or runtime version change is introduced.
+
+Reconcile current workspace standards at this integration boundary. Replace the
+older per-task reconciliation guidance with the authoritative lifecycle;
+preserve approval continuity, exact-SHA validation and one durable workspace
+closeout. These delivery changes do not alter licensing, provenance, dependency,
+behavior or release contracts. No standards exception is requested.
+
+## Validation and consequences
+
+Full mandatory CI must pass on the exact documentation successor before an
+ordinary non-force fast-forward of dev. Original runtime CI/review is retained
+as implementation evidence and cannot certify a different candidate SHA.
+Record the actual accepted commit and remote dev head at closeout. Keeping the
+accepted chain indefinitely on feature branches was rejected because it leaves
+the integration branch behind downstream packaged development work.
+
+Main promotion, version changes, tags, Releases, registry updates, downstream
+source-pin changes, installation, profiles/defaults, provider operations and
+branch deletion are excluded. Existing published tags/archives and their source
+metadata remain immutable. Revisit only on a later explicit release/promotion
+or operational request; integration evidence lives in the validation report.

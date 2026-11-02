@@ -24,8 +24,9 @@ authoritative for live refs, commits, pull requests, and checks.
 | `fix/benchmark-integrity-beta5` | short-lived | active; release and validation complete | `dev@4319656` | `dev` | Extend ADR-014 with checked diagnostic I/O, transactional retention, unique logs, bounded worker cleanup, and deterministic CI validation for wrapper beta.4. |
 | `feature/dev-main-promotion-2026-10-20` | short-lived | prepared for integration | `dev@a818fee` | `dev`, then `main` | Document the authorized branch-only promotion of unchanged beta.4 code. |
 | `feature/stable-v0.1.0-2026-10-20` | feature | stable release preparation | `dev@3c560c1` | `dev`, then `main` | Publish approved 0.1.0 with unchanged behavior and inspected package/checksum. |
-| `fix/conditional-video-transcode` | short-lived fix | implemented; review pending | `dev@5ed3068` | `dev` | Preserve compatible video unless an active policy requires conversion. |
-| `feature/shared-input-reservoir` | short-lived feature | locally tested; review pending | `fix/conditional-video-transcode@81d8116` | `dev` | Experimental opt-in single HTTP(S) MPEG-TS reader with RAM prefix replay and bounded queue. |
+| `fix/conditional-video-transcode` | short-lived fix | accepted implementation; included in this dev integration | `dev@5ed3068` | `dev` | Preserve compatible video unless an active policy requires conversion. |
+| `feature/shared-input-reservoir` | short-lived feature | accepted implementation; included in this dev integration | `fix/conditional-video-transcode@81d8116` | `dev` | Experimental opt-in single HTTP(S) MPEG-TS reader with RAM prefix replay and bounded queue. |
+| `fix/opaque-ts-auto` | short-lived fix | accepted implementation; included in this dev integration | `feature/shared-input-reservoir@137103b` | `dev` | Integrate the dependent conditional-video, shared-input and opaque-TS implementation chain. |
 
 ## Branch records
 
@@ -50,6 +51,17 @@ authoritative for live refs, commits, pull requests, and checks.
 - Base/target: `main` / `main`
 - Purpose: integrate post-bootstrap changes for the next beta or stable
   version.
+- Last observed integration baseline (2026-11-02):
+  `5ed306892edfb27f25736eaf938edbd94ff5a8c0` (stable 0.1.0). The accepted
+  implementation candidate `bb834684eb2c513e832c43ba6dbc773d5af10cbc` is seven
+  commits ahead and includes conditional video policy, shared input and opaque
+  TS detection. It is not yet incorporated in this observed `dev` baseline.
+- Current request: integrate that full dependent chain plus reviewed delivery
+  documentation into `dev`, gated by full CI on that exact candidate. The final
+  workspace closeout records its accepted SHA, CI run and verified remote head.
+  `main`, version,
+  tags, release artifacts, downstream pins and deployments are outside scope.
+  See [integration evidence](docs/dev-integration-2026-11-02.md) and ADR-022.
 - Last published beta: `0.1.0-beta.4` at immutable source commit
   `913a958fd5f9edc231c49a70539a09f611fdcc5a`. The matching plugin beta.5 is
   published to the development registry; native hardware, pipe, and final
@@ -200,6 +212,9 @@ authoritative for live refs, commits, pull requests, and checks.
 
 ### `fix/conditional-video-transcode`
 
+- Status: accepted implementation; included in this dev integration.
+- Owning implementation head: `81d811625e51e97c76f285267dc9c8d8ec885754`,
+  incorporated by the dependent shared-input and opaque-TS candidate.
 - Created: 2026-10-29; base `dev@5ed3068`; target `dev`.
 - Scope: distinguish automatic encoder preference from a requested codec;
   preserve compatible H.264/HEVC, independent audio policy, and explicit codec
@@ -209,19 +224,24 @@ authoritative for live refs, commits, pull requests, and checks.
   cached codec preferences and the cached VAAPI/HEVC progressive-input regression.
   Hardware and live-provider validation remain separate; mocked command tests
   do not establish those outcomes.
-- Excluded: release/version changes, standards reconciliation, promotion,
-  publication and deployment in this implementation batch. Downstream packaging
-  and authorized live validation are coordinated separately.
+- Initial implementation-batch exclusions: release/version changes, standards
+  reconciliation, promotion, publication and deployment. ADR-022 now authorizes
+  standards reconciliation and gated dev integration for this chain only.
+  Downstream packaging and authorized live validation are coordinated separately.
 
 ### `feature/shared-input-reservoir`
 
+- Status: accepted implementation; included in this dev integration.
+- Owning head: `137103b0b5d2ed2f21976c65be2cd5bc816dbdb6`; incorporated
+  by `fix/opaque-ts-auto@bb834684eb2c513e832c43ba6dbc773d5af10cbc`.
 - Created: 2026-10-30; base `81d811625e51e97c76f285267dc9c8d8ec885754`.
 - Scope: opt-in shared HTTP(S) continuous MPEG-TS startup input, bounded RAM
   retention, probe/playback replay, credential-safe telemetry and focused tests.
   The 2026-10-30 follow-up adds generic copy-codec allowlist and fallback-codec
   controls, preserving universal defaults and explicit codec precedence.
-- Excluded: live-provider acquisition, downstream plugin, installation, release,
-  promotion and remote publication. Local checkpoint commit is authorized.
+- Initial checkpoint excluded live-provider acquisition, downstream plugin,
+  installation, release, promotion and remote publication. ADR-022 now authorizes
+  source dev integration only; no release or operational authority is inferred.
 - Validation: `./scripts/validate.sh` passed on 2026-10-30 with ShellCheck
   0.11.0, Python 3.14.7 and FFmpeg/FFprobe 9.0.1. All 12 shared-input test
   methods passed, including exact replay over a 64-KiB cap, all three probe tiers,
@@ -266,15 +286,23 @@ authoritative for live refs, commits, pull requests, and checks.
 
 ### `fix/opaque-ts-auto`
 
+- Status: accepted implementation; included in this dev integration.
+- Runtime candidate: `bb834684eb2c513e832c43ba6dbc773d5af10cbc`. Original
+  exact-source Validate run `41103493960` passed; a documentation successor
+  requires its own full exact-SHA CI before advancing `dev`; the final workspace
+  closeout is authoritative for the accepted SHA, run and remote-head receipt.
 - Created 2026-10-30 from owning `feature/shared-input-reservoir` at
   `137103b0b5d2ed2f21976c65be2cd5bc816dbdb6`; dependent fix atop the existing
   shared-input feature, to be integrated only with that dependency.
 - Scope: classify unhinted direct HTTP(S) response bodies on the retained reader,
   preserve single-open TS and restore legacy handling for non-TS before output.
-- Excluded: source/profile changes, installation, releases and registry changes.
+- Initial checkpoint excluded source integration, profile changes, installation,
+  releases and registry changes. ADR-022 supersedes the source-integration
+  exclusion for the accepted chain into dev only.
 - Validation: complete `./scripts/validate.sh` passed locally on 2026-10-30,
   including all 20 shared-input methods with generated real audio/video,
   authenticated redirected HLS fallback, opaque/mislabelled TS, strict/off/proxy
   compatibility, same-connection replay and bounded cancellation/deadlines.
-  Exact checkpoint CI, independent review and live provider testing remain
-  separate gates; no installation or release is claimed.
+  Original exact checkpoint CI passed (`41103493960`) and implementation review
+  was accepted. Documentation successors require their own exact CI; no new live,
+  installation or release result is claimed by this integration work.

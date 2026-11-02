@@ -12,25 +12,35 @@ commit and checksum; changes here never silently alter an installed plugin.
 
 ## Workspace Standards Reconciliation Gate
 
-Before substantive work:
+Ordinary established standalone work uses the pinned local guidance and applied
+`WORKSPACE-STANDARDS.yaml`. Refresh and reconcile authoritative workspace
+`AI-INSTRUCTIONS.md` and `AGENT-STANDARD.md` at bootstrap, explicit standards
+work, and before integration into `dev`/`main` or release publication.
 
-1. Locate the maintained local `matrix2669/workspace` checkout. Its
-   `AI-INSTRUCTIONS.md`, `AGENT-STANDARD.md`, and Git history must be readable.
-2. Run `<workspace>/scripts/reconcile-standards --check .` from this repository.
-3. If `WORKSPACE-STANDARDS.yaml` is missing, pending, malformed, or stale, stop and run
-   `<workspace>/scripts/reconcile-standards --diff .`.
-4. Review the standards change against this complete file, `DECISIONS.md`,
-   `DEPENDENCIES.md`, `BRANCHES.md`, `RELEASE.md`, code/configuration contracts,
-   related projects, and current user instructions.
-5. A contradiction blocks work. Ask focused questions to establish which
-   authority is correct, record supersessions in `DECISIONS.md`, and realign
-   every affected artifact.
-6. Only after no contradiction remains, run `<workspace>/scripts/reconcile-standards
-   --apply --confirm-reviewed-no-conflicts .`.
+1. Locate the maintained `matrix2669/workspace` checkout with readable standards
+   and Git history; run `<workspace>/scripts/reconcile-standards --check .`.
+2. When the manifest is missing, pending, malformed or stale, stop that boundary
+   and inspect `--diff` against this complete file, relevant decisions,
+   code/configuration contracts, dependencies, branch/release policy and related
+   projects. Established work uses relevant recorded history; bootstrap retains
+   its complete evidence-backed history gate.
+3. For unresolved authority, ask focused questions; record explicit
+   contradiction resolutions in `DECISIONS.md` and realign affected artifacts.
+   Only then run `--apply --confirm-reviewed-no-conflicts .`.
 
-Missing standards or workspace Git history is a hard block. Exceptions require
-explicit user approval and a dedicated section here with scope, rationale,
-authority, date, and removal trigger.
+Missing authoritative standards/history or unresolved contradictions block the
+required boundary. This lifecycle supersedes the former per-task gate, without
+waiving validation, release or approval rules. An exception still needs explicit
+owner approval and a dedicated section here stating scope, rationale, authority,
+date and removal trigger. Preserve unchanged explicit approval across delegation.
+
+Mandatory CI belongs to the exact candidate SHA. Documentation reconciliation
+creates a new candidate requiring full validation; prior runtime CI alone is
+insufficient. Reuse an original complete successful execution only for that
+same SHA and required acceptance inputs, preserving run/job/artifact provenance.
+Publish task-related workspace status once at durable logical closeout, rather
+than after every intermediate push. Code-repository documentation follows its
+owning branch; workspace documentation approval never promotes this source.
 
 ## Architecture
 
@@ -133,7 +143,8 @@ performance numbers are evidence, not portable defaults.
 
 - Read this file, `DECISIONS.md`, `DEPENDENCIES.md`, `BRANCHES.md`,
   `PROVENANCE.md`, and relevant history.
-- Run the standards reconciliation gate.
+- Use the local standards baseline during branch work; reconcile at the named
+  bootstrap, standards-update and promotion boundaries.
 - Confirm the branch base, target, version, and intended delivery path.
 - Refresh dependency and downstream integration contracts.
 - Keep decisions, user docs, tests, provenance, and branch records aligned.
