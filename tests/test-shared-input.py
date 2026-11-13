@@ -311,10 +311,28 @@ printf '%s' "$FFSMART_SHARED_INPUT"
                 self.assertNotIn(b'auto_fallback', p.stderr)
         run, env = self.auto_env('auto-classification-cancel')
         env.update(FFMPEG_SMART_SHARED_INPUT_DEADLINE='10', FFMPEG_SMART_SHARED_INPUT_IDLE='30')
-        p = subprocess.Popen([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + '/silent'], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(.3)
-        p.send_signal(signal.SIGTERM)
-        output, error = p.communicate(timeout=3)
+        route = '/silent/auto-classification-cancel'
+        with self.lock:
+            before = len(self.requests)
+        p = subprocess.Popen([str(ROOT / 'ffmpeg-smart.sh'), '-i', self.url + route], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            # An upstream request establishes that cancellation handlers are
+            # installed; a fixed sleep can signal during interpreter startup.
+            until = time.monotonic() + 2
+            ready = False
+            while time.monotonic() < until:
+                with self.lock:
+                    ready = any(path == route for path, _ in self.requests[before:])
+                if ready or p.poll() is not None:
+                    break
+                time.sleep(.01)
+            self.assertTrue(ready, 'classification did not reach upstream request')
+            p.send_signal(signal.SIGTERM)
+            output, error = p.communicate(timeout=3)
+        finally:
+            if p.poll() is None:
+                p.kill()
+                p.communicate(timeout=3)
         self.assertEqual(p.returncode, 130, error)
         self.assertEqual(output, b'')
         self.assertFalse((run / 'args').exists())

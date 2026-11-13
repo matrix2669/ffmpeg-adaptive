@@ -10,7 +10,13 @@ update, live settings change or deployment is part of this result.
   ShellCheck 0.11.0, including all 20 shared-input tests. An earlier overlapping
   run's cancellation return-code failure is retained at
   `/tmp/ffsmart-aac-verified.log`; the exclusive gate passed without changing
-  its deadline or assertion.
+  its deadline or assertion. A later exact-commit run reproduced the same
+  failure without overlap. The fixed 0.3-second signal delay did not establish
+  handler readiness. The fixture now waits, bounded by two seconds, for its
+  unique upstream request before signaling, and kills/reaps on readiness failure.
+  Existing one-second deadline cases, three-second cleanup bound and status/output
+  assertions are unchanged. No shared-input runtime code changed. The failing
+  exact-commit log remains `/tmp/ffsmart-c77dfdb-full-validation.log`.
 - Policy and real-media tests passed inside the isolated existing container
   with FFmpeg 8.1.2; executable SHA-256
   `66d929368322861e8dcdbeb3f69e4ce8ddf89b6cc2d3c6e364424c00561bf86c`.
