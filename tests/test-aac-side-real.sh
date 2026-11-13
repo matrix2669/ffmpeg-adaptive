@@ -75,17 +75,35 @@ ffmpeg -v error -f lavfi -i 'testsrc2=size=160x90:rate=10' \
     -f lavfi -i 'aevalsrc=0.1*sin(2*PI*311*t)|0.1*sin(2*PI*421*t)|0.1*sin(2*PI*523*t)|0.1*sin(2*PI*83*t)|0.1*sin(2*PI*733*t)|0.1*sin(2*PI*887*t):s=48000:c=5.1(side)' \
     -f lavfi -i 'aevalsrc=0.1*sin(2*PI*311*t)|0.1*sin(2*PI*421*t)|0.1*sin(2*PI*523*t)|0.1*sin(2*PI*83*t)|0.1*sin(2*PI*733*t)|0.1*sin(2*PI*887*t):s=48000:c=5.1' \
     -f lavfi -i 'sine=frequency=440:sample_rate=48000' \
-    -t 3 -map 0:v -map 1:a -map 2:a -map 3:a -c:v mpeg2video \
+    -t 12 -map 0:v -map 1:a -map 2:a -map 3:a -c:v mpeg2video \
     -c:a:0 ac3 -c:a:1 flac -c:a:2 flac -ac:a:2 2 "$tmp/mixed.mkv"
 FFMPEG_SMART_STATE_DIR="$tmp/state" FFMPEG_SMART_REQUIRE_CACHE=true "$repo/ffmpeg-smart.sh" \
     -i "$tmp/mixed.mkv" --copy-codecs mpeg2 -ffmpeg-map-mode all \
-    -ffmpeg-audio-mode add -ffmpeg-audio-option -af -ffmpeg-audio-option dynaudnorm=f=150:g=15 \
+    -ffmpeg-audio-mode add -ffmpeg-audio-option -af -ffmpeg-audio-option 'aresample=async=1,dynaudnorm=f=150:g=15' \
     > "$tmp/mixed.ts" 2> "$tmp/mixed.log"
 for spec in '0:6:5.1' '1:6:5.1' '2:2:stereo'; do
     IFS=: read -r ordinal channels layout <<< "$spec"
     [[ "$(ffprobe -v error -select_streams "a:$ordinal" -show_entries stream=sample_rate,channels,channel_layout -of csv=p=0 "$tmp/mixed.ts" | head -1)" == "48000,$channels,$layout" ]]
     ffmpeg -v error -xerror -i "$tmp/mixed.ts" -map "0:a:$ordinal" -f null -
+    for fraction in 2 3 4; do
+        python3 - "$tmp/mixed.ts" "$tmp/mixed-late.ts" "$fraction" <<'PYCODE'
+import sys
+b = open(sys.argv[1], 'rb').read()
+offset = (len(b) // int(sys.argv[3]) // 188) * 188
+open(sys.argv[2], 'wb').write(b[offset:])
+PYCODE
+        [[ "$(ffprobe -v error -select_streams "a:$ordinal" -show_entries stream=sample_rate,channels,channel_layout -of csv=p=0 "$tmp/mixed-late.ts" | head -1)" == "48000,$channels,$layout" ]]
+        ffmpeg -v error -xerror -i "$tmp/mixed-late.ts" -map "0:a:$ordinal" -f null -
+    done
 done
+# Unsafe side graphs fail before FFmpeg is started and don't reveal graph values.
+if FFMPEG_SMART_STATE_DIR="$tmp/state" FFMPEG_SMART_REQUIRE_CACHE=true "$repo/ffmpeg-smart.sh" \
+    -i "$tmp/mixed.mkv" --copy-codecs mpeg2 -ffmpeg-map-mode all -ffmpeg-audio-mode add \
+    -ffmpeg-audio-option -af -ffmpeg-audio-option 'http://user:secret@example.test' \
+    > "$tmp/unsafe.ts" 2> "$tmp/unsafe.log"; then exit 1; fi
+[[ ! -s "$tmp/unsafe.ts" ]]
+grep -q 'audio-filter-composition' "$tmp/unsafe.log"
+! grep -q 'secret' "$tmp/unsafe.log"
 # A compatible AAC-only source stays on the copy path without an added filter.
 ffmpeg -v error -i "$tmp/mixed.ts" -map 0:v:0 -map 0:a:2 -c copy "$tmp/aac-only.ts"
 FFMPEG_SMART_STATE_DIR="$tmp/state" FFMPEG_SMART_REQUIRE_CACHE=true "$repo/ffmpeg-smart.sh" \

@@ -251,18 +251,30 @@ option. Mapping also supports `all`. The wrapper retains ownership of the
 input, hardware device, video encoder, hardware filter graph, and final
 `-f mpegts pipe:1` destination.
 
-When managed audio is transcoded, a simple added `dynaudnorm` filter composes
-after `aresample=async=1` rather than replacing it. For example, add
-`-af` and `dynaudnorm=f=150:g=15` as separate audio-option arguments. The last
-matching user filter wins before composition. Replacement mode stays entirely
-operator-controlled. Other graphs retain FFmpeg’s last-option behavior; adding
-a filter to copied audio still requires explicitly choosing an encoder.
+When managed audio is transcoded, supported added audio processing composes
+with the managed asynchronous resampler. For example, both
+`dynaudnorm=f=150:g=15` and
+`aresample=async=1,dynaudnorm=f=150:g=15` retain normalization; the explicit
+resampler is not duplicated. Filter order and the last matching user option per
+output stream are preserved. These are canonical expert CLI options; the
+Dispatcharr plugin separately gates which saved text its selected UI mode uses.
 
-Known six-channel `5.1(side)` streams encoded as AAC use one-to-one surround
-routing into standard `5.1` (back) so ADTS headers identify all six channels at
-late join. Channel count, sample rate and bitrate policy are preserved. Stereo,
-other layouts, copied AAC and replacement audio policy are unaffected. Unknown
-mappings or layout-changing filter graphs conservatively skip this correction.
+Supported simple chains use unquoted comma-separated `aresample`, `dynaudnorm`,
+numeric `volume` and `anull`, with supported numeric options. Layout-changing
+resampler options, arbitrary filters, quoting, escaping and branched graphs need
+explicit operator-owned Replace mode. The supported grammar is deliberately
+bounded; FFmpeg remains responsible for validating numeric option ranges.
+
+Known six-channel `5.1(side)` streams encoded as AAC receive one-to-one surround
+routing into standard `5.1` (back), before the supported chain, so ADTS identifies
+all six channels at late join. Channel count, sample rate and bitrate policy are
+preserved unless the operator explicitly chooses a sample-rate conversion. Copy,
+stereo, other layouts and replacement audio policy do not receive this pan.
+Unsupported/unsafe graphs on eligible side AAC fail before FFmpeg starts with
+`audio-filter-composition` guidance rather than silently dropping the correction.
+Unknown mappings remain conservatively unresolved and are diagnosed. Filtering
+copied audio still requires explicitly choosing an encoder; it is not silently
+reencoded. An already malformed copied AAC source is outside this encoding fix.
 
 ## Benchmarks
 

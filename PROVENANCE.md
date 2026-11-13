@@ -161,3 +161,10 @@ Preferred-cache copy selection, codec alias/format normalization and conservativ
 Auto proxy gating were independently authored from the operator's instructions
 and existing module contracts. Official Dispatcharr 0.33.0 source was read for
 field and cancellation/timing compatibility only; no implementation was copied.
+
+## Local audio-chain composition correction, 2026-11-13
+
+The bounded Bash chain recognizer and behavioral fixtures were independently
+authored from owner requirements and public FFmpeg option behavior. No FFmpeg
+parser or third-party implementation was copied. Existing MIT source ownership
+and runtime dependency boundaries remain unchanged.

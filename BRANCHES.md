@@ -1,5 +1,12 @@
 # Branches
 
+## Local composition correction, 2026-11-13
+
+`fix/audio-filter-composition` starts at canonical dev `fd6c400` and targets dev
+only after later explicit approval. One implementation owner handles audio
+composition/tests; coordinator owns documentation and downstream preparation.
+No push, tag, channel promotion or deployment in this phase.
+
 ## Local AAC side-surround late-join fix
 
 `fix/aac-side-late-join` starts at dev262f92b and targets dev after review and

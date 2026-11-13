@@ -1,5 +1,17 @@
 # Agent Guidance
 
+## Local Add-to-Defaults composition correction, 2026-11-13
+
+The owner reports installed beta.5 rejected the actual safe chain
+`aresample=async=1,dynaudnorm=f=150:g=15`, silently omitting required AAC
+layout correction. Repair composition for supported layout-preserving chains,
+retain order/explicit resampling and operator choices, preserve copy and Replace
+semantics, avoid duplicate encoding, and diagnose unsupported/unsafe graphs
+clearly. Test actual argv and realistic late joins. Prepare downstream plugin
+and registry candidates locally; no publication or deployment is authorized.
+This supersedes silent skip behavior where the new acceptance requires clear
+unsupported-graph handling. Do not edit bridge/FIFO or live settings.
+
 ## Local AAC late-join source repair, 2026-11-13
 
 The owner authorizes local evaluation/repair of Smart's automatic AC3 5.1(side)

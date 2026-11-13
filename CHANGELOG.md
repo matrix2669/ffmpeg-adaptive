@@ -4,6 +4,11 @@ All notable user-visible changes are documented here.
 
 ## Unreleased
 
+- Correct Add audio filter composition for the reported resample-plus-dynaudnorm
+  chain and other supported simple combinations. Preserve explicit resampling
+  without duplication and retain the AAC side-layout correction; unsupported
+  eligible graphs now report a configuration error before encoding.
+
 - Preserve six-channel AAC late joins when encoding known 5.1(side) inputs by
   routing the surround pair one-to-one into standard 5.1 ADTS configuration.
   Stereo, other layouts and copied AAC retain their existing policy.

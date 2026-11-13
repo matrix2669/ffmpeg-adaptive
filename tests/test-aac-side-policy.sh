@@ -4,6 +4,7 @@ repo="$(cd "$(dirname "$0")/.." && pwd -P)"
 source "$repo/lib/ffsmart-probe.sh"
 source "$repo/lib/ffsmart-policy.sh"
 ffsmart_log() { :; }
+ffsmart_fail() { printf "%s\n" "$3" >&2; return "$1"; }
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 cat > "$tmp/probe" <<'DATA'
 index=10|codec_type=audio|codec_name=ac3|channels=6|sample_rate=48000|channel_layout=5.1(side)
@@ -43,8 +44,9 @@ FFSMART_MAX_CHANNELS=6; FFSMART_USER_AUDIO_ARGS=(-c:a copy); ffsmart_resolve_aud
 [[ "${FFSMART_AUDIO_ARGS[*]}" != *'pan=5.1'* ]]
 FFSMART_USER_AUDIO_ARGS=(-c:a ac3); ffsmart_resolve_audio_policy
 [[ "${FFSMART_AUDIO_ARGS[*]}" != *'pan=5.1'* ]]
-FFSMART_USER_AUDIO_ARGS=(-af 'pan=stereo|c0=c0|c1=c1'); ffsmart_resolve_audio_policy
-[[ "${FFSMART_AUDIO_ARGS[*]}" != *'pan=5.1'* ]]
+FFSMART_USER_AUDIO_ARGS=(-af 'pan=stereo|c0=c0|c1=c1')
+if ffsmart_resolve_audio_policy 2>"$tmp/error"; then exit 1; fi
+grep -q 'audio Replace mode' "$tmp/error"
 FFSMART_AUDIO_MODE=replace; FFSMART_USER_AUDIO_ARGS=(-c:a aac -af 'dynaudnorm=f=150:g=15'); ffsmart_resolve_audio_policy
 [[ "${FFSMART_AUDIO_ARGS[*]}" != *'pan=5.1'* ]]
 FFSMART_AUDIO_MODE=inherit; FFSMART_USER_AUDIO_ARGS=(); FFSMART_AUDIO_ALL_AAC=true; ffsmart_resolve_audio_policy
@@ -79,4 +81,25 @@ FFSMART_USER_AUDIO_ARGS=()
 FFSMART_MAP_ARGS=(-map '0:a:m:language:eng')
 ffsmart_resolve_audio_policy
 [[ "${FFSMART_AUDIO_ARGS[*]}" != *'pan=5.1'* ]]
+# Last matching filter wins, while the complete selected chain keeps its order.
+FFSMART_MAP_ARGS=(-map 0); FFSMART_AUDIO_MODE=add; FFSMART_MAX_CHANNELS=''
+FFSMART_USER_AUDIO_ARGS=(-af 'dynaudnorm=f=120:g=5' -af 'aresample=async=1,dynaudnorm=f=150:g=15' -filter:a:1 'volume=0.8,dynaudnorm=f=200:g=7')
+ffsmart_resolve_audio_policy
+pan='pan=5.1|FL=FL|FR=FR|FC=FC|LFE=LFE|BL=SL|BR=SR'
+[[ "${FFSMART_AUDIO_ARGS[${#FFSMART_AUDIO_ARGS[@]}-1]}" == "$pan,aresample=async=1,dynaudnorm=f=150:g=15" ]]
+[[ "${FFSMART_AUDIO_ARGS[*]}" == *'-filter:a:1 aresample=async=1,volume=0.8,dynaudnorm=f=200:g=7'* ]]
+FFSMART_USER_AUDIO_ARGS=(-af 'dynaudnorm=f=150:g=15,aresample=44100:async=2,volume=0.8')
+ffsmart_resolve_audio_policy
+[[ "${FFSMART_AUDIO_ARGS[${#FFSMART_AUDIO_ARGS[@]}-1]}" == "$pan,dynaudnorm=f=150:g=15,aresample=44100:async=2,volume=0.8" ]]
+for graph in 'aresample=ocl=stereo' "volume='0.5,0.6'" 'volume=0.5\,0.6' 'http://user:secret@example.test'; do
+    FFSMART_USER_AUDIO_ARGS=(-af "$graph")
+    if ffsmart_resolve_audio_policy 2>"$tmp/error"; then exit 1; fi
+    grep -q 'audio Replace mode' "$tmp/error"
+    ! grep -q 'secret' "$tmp/error"
+done
+# Unsupported graphs on non-side or copied outputs retain normal FFmpeg behavior.
+FFSMART_MAP_ARGS=(-map 0:a:1); FFSMART_USER_AUDIO_ARGS=(-af 'pan=stereo|c0=c0|c1=c1')
+ffsmart_resolve_audio_policy
+FFSMART_MAP_ARGS=(-map 0:a:2); FFSMART_USER_AUDIO_ARGS=(-c:a copy -af 'pan=stereo|c0=c0|c1=c1')
+ffsmart_resolve_audio_policy
 printf 'AAC side-layout policy tests passed\n'

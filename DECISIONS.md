@@ -1161,3 +1161,50 @@ approval. An FFmpeg fork or PCE injector was rejected as unnecessary scope.
 Tests must assert generated arguments, copy/replace policy, mixed audio,
 normalization composition, ADTS configuration, distinct-channel routing and
 real late joins, including 44.1 and 48 kHz.
+
+
+---
+
+# ADR-024: Compose supported Add audio chains without losing required layout correction
+
+## Status and evidence
+
+Accepted for local correction and downstream preparation, 2026-11-13. The owner
+reported installed beta.5 rejected the actual safe graph
+`aresample=async=1,dynaudnorm=f=150:g=15`; read-only live diagnosis confirmed the
+pan was skipped. This exposes missing composition coverage in ADR-023, not a
+request for another FFmpeg process or audio encoding pass. No publication,
+installation, live-setting, bridge/FIFO or deployment changes are authorized.
+
+## Decision
+
+Resolve the last matching per-output codec, channel and filter options, then
+compose supported simple layout-preserving chains in one FFmpeg filter graph.
+For eligible six-channel side-layout AAC, prepend the existing approved
+one-to-one standard-5.1 pan. Preserve user filter order and explicit resampling
+choices; do not add the managed resampler when the chain already selects one.
+Retain the managed async resampler when supported added processing lacks one.
+Copy stays copy, Replace remains operator-owned, and non-5.1 streams do not
+receive the side-layout pan. Do not introduce a second encoder or FFmpeg pass.
+
+A bounded grammar supports unquoted comma-separated aresample, dynaudnorm,
+numeric volume and anull, with supported numeric arguments. It does not pretend
+to parse arbitrary FFmpeg escaping, quoting, graph labels, branching or channel
+layout conversion. On eligible side AAC, unsupported/unsafe graph composition
+must fail with an actionable credential-safe diagnostic before FFmpeg starts,
+rather than emitting known uncorrected configuration-zero AAC after a skip.
+Never echo the raw user graph in this diagnostic. Other layouts, copy and
+explicit Replace retain their existing expert-option behavior. This supersedes
+ADR-023's skip-and-continue policy for eligible unsupported audio graphs only.
+
+## Acceptance and downstream preparation
+
+Test actual argv and emitted AAC for the reported graph, supported combinations,
+explicit resampling/order/no duplication, per-stream precedence, mixed streams,
+copy identity, Replace, unsafe diagnostics and realistic late joins. Preserve
+canonical ownership. A local immutable source commit may be staged exactly into
+a local beta.6 plugin for offline tests, with no remote-verification claim until
+approved canonical publication. New beta version, exact plugin commit and
+matching root/detail registry metadata remain local candidates. Subsequent
+publication must validate the canonical source, plugin/tag/archive and registry
+in dependency order under explicit approval.
