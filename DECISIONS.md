@@ -1120,3 +1120,44 @@ source-pin changes, installation, profiles/defaults, provider operations and
 branch deletion are excluded. Existing published tags/archives and their source
 metadata remain immutable. Revisit only on a later explicit release/promotion
 or operational request; integration evidence lives in the validation report.
+
+
+---
+
+# ADR-023: Make encoded six-channel AAC independently joinable
+
+## Status and authority
+
+Accepted for local implementation and validation, 2026-11-13. The owner approved
+conditional 5.1(side) to standard 5.1 remapping when encoding AAC, preserving six
+channels. Publishing, downstream pin/version changes and deployment need fresh
+approval. This extends ADR-008; it does not authorize bridge or FIFO changes.
+
+## Evidence and decision
+
+Channel 505 diagnostics and an isolated capture showed AAC with ADTS channel
+configuration zero and unusable channel parameters at late join, despite larger
+probe budgets. FFmpeg 8.1.2 emits the required Program Config Element once in
+this path. A full-versus-late-join synthetic reproduction distinguishes the
+source initialization issue from bridge probing. Larger probes cannot recover
+missing configuration. Live source acceptance remains a separate operator test.
+
+For resolved six-channel 5.1(side) streams actually encoded with AAC, prepend
+`pan=5.1|FL=FL|FR=FR|FC=FC|LFE=LFE|BL=SL|BR=SR` to the compatible audio
+filter chain. Each surround signal retains its own channel; the output layout
+label intentionally becomes standard 5.1 (back). This is neither a downmix nor
+a sample-rate change. Preserve existing bitrate and resampling/normalization
+intent. In managed transcoding, compose a simple added `dynaudnorm` after
+the managed async resampler; resolve the last matching user filter per output
+stream before composition. Arbitrary graphs retain existing last-option
+behavior, and filtering a copy path remains an explicit FFmpeg error rather
+than silently reencoding. Never apply this pan to stereo, unknown layouts, copied AAC, explicit
+replacement policy or an unresolved mapping/filter graph. Preserve operator
+codec choices and explicit channel ceilings.
+
+The canonical implementation belongs here. The Dispatcharr plugin vendors an
+immutable reviewed source revision and must be updated separately after
+approval. An FFmpeg fork or PCE injector was rejected as unnecessary scope.
+Tests must assert generated arguments, copy/replace policy, mixed audio,
+normalization composition, ADTS configuration, distinct-channel routing and
+real late joins, including 44.1 and 48 kHz.

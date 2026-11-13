@@ -4,6 +4,12 @@ All notable user-visible changes are documented here.
 
 ## Unreleased
 
+- Preserve six-channel AAC late joins when encoding known 5.1(side) inputs by
+  routing the surround pair one-to-one into standard 5.1 ADTS configuration.
+  Stereo, other layouts and copied AAC retain their existing policy.
+- Compose supported added audio normalization with managed async resampling,
+  preserving per-stream filter precedence and explicit replacement mode.
+
 - Detect continuous MPEG-TS from the initial HTTP response in shared-input Auto,
   including URLs without TS hints and missing/misleading MIME labels. Probes and
   playback reuse the same retained TS connection. Opaque non-TS formats return

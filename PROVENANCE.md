@@ -29,6 +29,7 @@ advice or a guarantee that no claim can ever be made.
 
 | Source | Status | Use | Expression copied |
 |---|---|---|---|
+| [FFmpeg 8.1.2 ADTS muxer](https://github.com/FFmpeg/FFmpeg/blob/n8.1.2/libavformat/adtsenc.c) and AAC encoder | Official FFmpeg source; behavior research only | One-time PCE emission and channel configuration diagnosis; new Bash policy/tests independently authored | No |
 | [FFmpeg manuals](https://ffmpeg.org/documentation.html) | Official project documentation | CLI, filters, encoders, devices, and MPEG-TS behavior | No |
 | [FFmpeg QSV example](https://github.com/FFmpeg/FFmpeg/blob/master/doc/examples/qsv_transcode.c) | FFmpeg repository license | QSV device/filter relationships | No |
 | [Linux DRM sysfs ABI](https://www.kernel.org/doc/Documentation/ABI/testing/sysfs-class-drm) | Kernel documentation | Render-node and hardware identity | No |

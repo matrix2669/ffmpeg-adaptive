@@ -1,5 +1,21 @@
 # Agent Guidance
 
+## Local AAC late-join source repair, 2026-11-13
+
+The owner authorizes local evaluation/repair of Smart's automatic AC3 5.1(side)
+to AAC path after channel505 diagnostics and a matching full-stream/late-join
+reproduction. ADTS configuration zero requires a PCE that the current FFmpeg muxer
+emits once. Evaluate conditional one-to-one side-to-canonical5.1 surround routing
+only for known5.1(side) streams actually encoded to AAC. Preserve channel count,
+sample rate, bitrate policy, existing resampling/normalization intent, explicit
+operator codec/replace choices, stereo/mono and unrelated streams. Record the
+intentional surround-label convention; do not claim the metadata layout name is
+unchanged. Do not introduce an FFmpeg fork/PCE injector or edit the downstream
+vendored runtime independently. No settings, live profiles, bridge/FIFO or other
+channels may change. Work locally with tests and independent review; publication,
+plugin pin/version updates and deployment require fresh approval.
+
+
 ## Purpose
 
 `ffmpeg-adaptive` is the standalone matrix2669 source for an adaptive live

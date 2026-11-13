@@ -251,6 +251,19 @@ option. Mapping also supports `all`. The wrapper retains ownership of the
 input, hardware device, video encoder, hardware filter graph, and final
 `-f mpegts pipe:1` destination.
 
+When managed audio is transcoded, a simple added `dynaudnorm` filter composes
+after `aresample=async=1` rather than replacing it. For example, add
+`-af` and `dynaudnorm=f=150:g=15` as separate audio-option arguments. The last
+matching user filter wins before composition. Replacement mode stays entirely
+operator-controlled. Other graphs retain FFmpeg’s last-option behavior; adding
+a filter to copied audio still requires explicitly choosing an encoder.
+
+Known six-channel `5.1(side)` streams encoded as AAC use one-to-one surround
+routing into standard `5.1` (back) so ADTS headers identify all six channels at
+late join. Channel count, sample rate and bitrate policy are preserved. Stereo,
+other layouts, copied AAC and replacement audio policy are unaffected. Unknown
+mappings or layout-changing filter graphs conservatively skip this correction.
+
 ## Benchmarks
 
 `benchmark-accel.sh` records candidate results. `benchmark-live.sh` exercises

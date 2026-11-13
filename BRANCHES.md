@@ -1,5 +1,14 @@
 # Branches
 
+## Local AAC side-surround late-join fix
+
+`fix/aac-side-late-join` starts at dev262f92b and targets dev after review and
+future publication approval. Canonical runtime owns conditional AAC source policy
+and its probe metadata; the Dispatcharr plugin must later synchronize an approved
+immutable source commit and new version. No vendored implementation, source
+publication, live profile or deployment is authorized by this local checkpoint.
+
+
 This ledger records why every current branch exists. GitHub remains
 authoritative for live refs, commits, pull requests, and checks.
 

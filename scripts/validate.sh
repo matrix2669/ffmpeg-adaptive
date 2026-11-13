@@ -28,6 +28,8 @@ test_cases=(
     test-benchmark-lock-owner.sh
     test-adaptive-probing.sh
     test-policy-matrix.sh
+    test-aac-side-policy.sh
+    test-aac-side-real.sh
     test-hardware-command.sh
     test-benchmark-integrity.sh
     test-pipe-replay.sh

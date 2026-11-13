@@ -28,6 +28,15 @@ backends, and device access selected by the local capability scan.
 | Linux DRM and `/proc` | Render-node identity and visible FFmpeg workload markers | Tested in Docker/LXC with two Intel devices | Optional; software fallback remains available |
 | Standard Unix tools | `awk`, `grep`, `sed`, `sort`, `stat`, `mktemp`, `mkfifo`, `cat`, hashing and path helpers | Validation covers command construction, checked FIFO writers, and state lifecycle | Required as documented |
 
+## Local AAC late-join repair, 2026-11-13
+
+The candidate requires the existing FFprobe channel-layout metadata and FFmpeg
+`pan` filter. It introduces no fork or additional runtime dependency. FFmpeg
+8.1.2 ADTS emits a configuration-zero PCE once for 5.1(side); canonical six-channel
+5.1 encoding uses ADTS configuration 6. Synthetic validation is distinct from
+acceptance of an installed live source. The plugin source pin remains unchanged
+until separately approved publication and packaging.
+
 ## Change review
 
 ### 2026-09-21 beta.4 source and managed validation review
